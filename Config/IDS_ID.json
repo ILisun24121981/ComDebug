@@ -1,0 +1,16 @@
+{
+  "IDS_Identifiers": {
+    "0x01": { "name": "INC", "description": "Текущий зенит / инклинейшн" },
+    "0x02": { "name": "AZM", "description": "Текущий азимут" },
+    "0x03": { "name": "SHRISK", "description": "Шок риск [Код риска]" },
+    "0x04": { "name": "MSHRMS", "description": "Средний RMS ударных нагрузок" },
+    "0x05": { "name": "SS", "description": "Коэффициент заклинивания-проскальзывания" },
+    "0x06": { "name": "CMD", "description": "Последняя принятая прибором команда" },
+    "0x07": { "name": "GRUP", "description": "Гамма верх" },
+    "0x08": { "name": "GRR", "description": "Гамма право" },
+    "0x09": { "name": "GRD", "description": "Гамма низ" },
+    "0x0A": { "name": "GRL", "description": "Гамма лево" },
+    "0x0B": { "name": "GRA", "description": "Гамма интегральная / усредненная" },
+    "0xF0": { "name": "STATUS", "description": "Битовые поля статусов прибора" }
+  }
+}

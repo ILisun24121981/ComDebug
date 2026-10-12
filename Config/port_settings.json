@@ -1,0 +1,25 @@
+{
+  "protocols": {
+    "Gels": {
+      "Speed": 1500000,
+      "DataBits": 8,
+      "Parity": "None",
+      "StopBits": 1.0,
+      "FlowControl": "None"
+    },
+    "Aps": {
+      "Speed": 9600,
+      "DataBits": 8,
+      "Parity": "Mark",
+      "StopBits": 1.0,
+      "FlowControl": "None"
+    },
+    "IDS": {
+      "Speed": 11520,
+      "DataBits": 8,
+      "Parity": "None",
+      "StopBits": 1.0,
+      "FlowControl": "None"
+    }
+  }
+}
