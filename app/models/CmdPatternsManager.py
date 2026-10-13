@@ -13,49 +13,96 @@ class CmdPatternsManager:
         self.config_dir.mkdir(exist_ok=True)
 
     def load_patterns_names(self, protocol_name: str) -> list[str]:
-        """Вычитывает JSON и возвращает плоский список названий шаблонов для ComboBox."""
+        """Вычитывает JSON и возвращает список названий команд, игнорируя служебную секцию адресов."""
         patterns = self._read_file(protocol_name)
-        return list(patterns.keys())
+        return [name for name in patterns.keys() if name != "__service_address__"]
+
+    def load_service_addresses(self, protocol_name: str) -> dict:
+        """Вычитывает сохраненную из файла служебную адресацию шины."""
+        patterns = self._read_file(protocol_name)
+        service_data = patterns.get("__service_address__", {})
+
+        if service_data:
+            return service_data
+
+        if protocol_name == "Gels":
+            return {"dst": "CA", "src": "17"}
+        else:
+            return {"dst": "8A", "src": "0A"}
+
+    def save_service_addresses(self, protocol_name: str, dst_hex: str, src_hex: str):
+        """Физически перезаписывает служебную секцию адресов в JSON файле."""
+        if not protocol_name:
+            return
+
+        file_name = f"{protocol_name}CmdPatterns.json"
+        file_path = self.config_dir / file_name
+
+        patterns = self._read_file(protocol_name)
+        patterns["__service_address__"] = {
+            "dst": dst_hex.upper(),
+            "src": src_hex.upper()
+        }
+
+        ordered_patterns = {"__service_address__": patterns["__service_address__"]}
+        for k, v in patterns.items():
+            if k != "__service_address__":
+                ordered_patterns[k] = v
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(ordered_patterns, f, ensure_ascii=False, indent=2)
+            print(f"[CmdPatternsManager] Служебные адреса успешно сохранены для {protocol_name}")
+        except Exception as e:
+            print(f"[CmdPatternsManager] Ошибка сохранения служебных адресов: {e}")
 
     def extract_pattern_data(self, protocol_name: str, pattern_name: str) -> dict:
         """
         Вычитывает сохраненную HEX-строку кадра и разбирает её на логические составляющие.
-        Освобождает контроллер от низкоуровневой бинарной логики.
+        ИСПРАВЛЕНО: Срез полезной нагрузки Gels переведен на индекс 5, исключая байты длины.
         """
         patterns = self._read_file(protocol_name)
         hex_string = patterns.get(pattern_name, "").replace(" ", "")
 
         result = {
+            "dst_addr": 0x00,
+            "src_addr": 0x00,
             "cmd_code": 0x00,
             "payload_bytes": b""
         }
 
-        if not hex_string:
+        if not hex_string or pattern_name == "__service_address__":
             return result
 
         try:
             full_frame_bytes = bytes.fromhex(hex_string)
+            if len(full_frame_bytes) < 5:
+                return result
 
-            # Извлекаем код команды и полезную нагрузку на основе структуры кадра протокола
+            # Первые два байта во всех протоколах — адресация
+            result["dst_addr"] = int(full_frame_bytes[0])
+            result["src_addr"] = int(full_frame_bytes[1])
+
+            # Извлекаем код команды и полезную нагрузку в зависимости от протокола
             if protocol_name == "IDS":
-                # IDS SBus: DST(1B) + SRC(1B) + SIZE(2B) + CMD(1B) + PAYLOAD + CRC(1B)
                 if len(full_frame_bytes) >= 6:
-                    # Сохраняем оригинальный байт команды (находится на 5-й позиции, индекс 4)
-                    result["cmd_code"] = full_frame_bytes[4]
+                    result["cmd_code"] = int(full_frame_bytes[4])
                     result["payload_bytes"] = full_frame_bytes[5:-1]
+
             elif protocol_name == "Aps":
-                # APS: DST(1B) + SRC(1B) + SIZE(2B) + CMD(1B) + PAYLOAD + CRC(2B)
-                if len(full_frame_bytes) >= 6:
-                    result["cmd_code"] = full_frame_bytes[4]
+                if len(full_frame_bytes) >= 7:
+                    result["cmd_code"] = int(full_frame_bytes[4])
                     result["payload_bytes"] = full_frame_bytes[5:-2]
-            else:
-                # Gels: DEV(1B) + MOD(1B) + CMD(1B) + SIZE(2B) + PAYLOAD + CRC(1B) + END(1B)
-                if len(full_frame_bytes) >= 5:
-                    result["cmd_code"] = full_frame_bytes[2]
+
+            elif protocol_name == "Gels":
+                # Gels заголовок: DEV(1B) + MOD(1B) + CMD(1B) + SIZE(2B)
+                if len(full_frame_bytes) >= 7:
+                    result["cmd_code"] = int(full_frame_bytes[2])  # Код команды лежит в 3-м байте (индекс 2)
+                    # ИСПРАВЛЕНО: Payload начинается строго с 6-го байта (индекс 5), пропуская 2 байта размера
                     result["payload_bytes"] = full_frame_bytes[5:-2]
 
         except Exception as e:
-            print(f"[CmdPatternsManager] КРИТИЧЕСКАЯ ОШИБКА РАЗБОРА КАДРА ШАБЛОНА: {e}")
+            print(f"[CmdPatternsManager] Ошибка бинарного разбора кадра шаблона {protocol_name}: {e}")
 
         return result
 
@@ -73,7 +120,6 @@ class CmdPatternsManager:
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(patterns, f, ensure_ascii=False, indent=2)
-            print(f"[CmdPatternsManager] Шаблон '{pattern_name}' успешно сохранен в {file_name}")
             return True
         except Exception as e:
             print(f"[CmdPatternsManager] Ошибка записи в {file_name}: {e}")
@@ -93,5 +139,4 @@ class CmdPatternsManager:
             with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"[CmdPatternsManager] Ошибка чтения {file_name}: {e}")
             return {}

@@ -4,6 +4,8 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
 from app.models.ConfigManager import ConfigManager
 from app.models.CmdPatternsManager import CmdPatternsManager
 from app.models.protocols.IdsProtocol import IdsProtocol
+from app.models.protocols.GelsProtocol import GelsProtocol
+from app.models.protocols.ApsProtocol import ApsProtocol  # Добавлен импорт твоего файла ApsProtocol
 from app.views.MainWindow import MainWindow
 from app.views.SaveCmdPatternView import SaveCmdPatternView
 from app.controllers.ComPortController import ComPortController
@@ -18,7 +20,7 @@ class ApplicationController(QObject):
     Корневой оркестратор приложения (Root MVC Controller).
     Координирует межмодульную телеметрию, логирование и ручную/автоматическую отправку команд.
     """
-    data_parsed_signal = pyqtSignal(dict)  # Сигнал для безопасной межпотоковой передачи словарей
+    data_parsed_signal = pyqtSignal(dict)
 
     def __init__(self, config_manager: ConfigManager, main_window: MainWindow):
         super().__init__()
@@ -44,15 +46,17 @@ class ApplicationController(QObject):
         )
         self.send_cmd_controller.on_command_ready_to_dispatch = self.handle_manual_command_dispatch
 
-        # Инициализируем синглтон-менеджер сохранения файлов шаблонов на диске
+        # Инициализируем менеджер сохранения шаблонов команд
         self.patterns_manager = CmdPatternsManager()
-
-        # Подключаем сигнал запроса на сохранение шаблона посылки от SendCmdController
         self.send_cmd_controller.save_pattern_requested.connect(self.process_pattern_save_request)
 
-        # Ссылка на динамический контроллер комплексной панели IDS
+        # Полиморфные ссылки на дочерние подсистемы управления приборами КНБК
         self.ids_panel_controller: Optional[IdsPanelController] = None
         self.ids_protocol_instance: Optional[IdsProtocol] = None
+        self.gels_protocol_instance: Optional[GelsProtocol] = None
+
+        # Ссылка на экземпляр класса протокола APS
+        self.aps_protocol_instance: Optional[ApsProtocol] = None
 
         # Привязываем обработчики сессий связи
         self.com_port_controller.on_session_started = self.handle_session_start
@@ -66,26 +70,32 @@ class ApplicationController(QObject):
         self.rx_buffer.clear()
         self.port_logger_controller.write_log("sys", f"--- Физический канал связи успешно открыт [{protocol_name}] ---")
 
-        # Приказываем дочернему SendCmdController настроить радиокнопки и загрузить шаблоны для выбранного протокола
+        # Конфигурируем и разворачиваем сквозной пульт под выбранный протокол (Gels / IDS / Aps)
         self.send_cmd_controller.configure_for_protocol(protocol_name)
 
         if protocol_name == "IDS":
             ids_map = self.config_manager.load_ids_identifiers()
             self.main_window.show_ids_interface(ids_map)
 
+            # ИСПРАВЛЕНО: Возвращаем каноничный компактный вызов без лишних методов-сеттеров
             self.ids_protocol_instance = IdsProtocol(ids_map)
+            self.ids_panel_controller = IdsPanelController(view=self.main_window.ids_panel_view)
 
-            # Создаем комплексный контроллер панели управления IDS
-            self.ids_panel_controller = IdsPanelController(
-                view=self.main_window.ids_panel_view
-            )
-
-            # Связываем сигналы панели IDS с оркестратором
             self.data_parsed_signal.connect(self.ids_panel_controller.update_telemetry_data)
             self.ids_panel_controller.send_request_signal.connect(self.execute_ids_data_query)
 
+        elif protocol_name == "Gels":
+            self.gels_protocol_instance = GelsProtocol()
+
+        elif protocol_name == "Aps":
+            # ИСПРАВЛЕНО: Инициализируем класс ApsProtocol при старте соответствующей сессии связи
+            self.aps_protocol_instance = ApsProtocol()
+
     def handle_session_stop(self):
         """Вызывается при закрытии физического COM-порта."""
+        self.main_window.send_cmd_view.set_addresses_container_visible(False)
+        self.main_window.send_cmd_view.set_radio_layout_visible(False)
+
         try:
             if self.ids_panel_controller:
                 self.data_parsed_signal.disconnect(self.ids_panel_controller.update_telemetry_data)
@@ -95,6 +105,8 @@ class ApplicationController(QObject):
 
         self.ids_panel_controller = None
         self.ids_protocol_instance = None
+        self.gels_protocol_instance = None
+        self.aps_protocol_instance = None  # Сбрасываем объект APS при закрытии порта
         self.rx_buffer.clear()
         self.main_window.show_default_left_interface()
         self.port_logger_controller.write_log("sys", "--- Физический канал связи закрыт пользователем ---")
@@ -103,101 +115,144 @@ class ApplicationController(QObject):
     def handle_incoming_bytes(self, raw_bytes: bytes):
         """
         Потокобезопасный слот: выполняется строго в главном GUI-потоке.
-        Мгновенно выводит любые пришедшие байты (включая мусор) на экран в реал-тайме.
+        Накапливает байты и выводит в терминал логов строго СОБРАННЫЕ цельные кадры.
         """
         if not raw_bytes:
             return
 
-        # Любой мусор или системные байты сразу отображаются зеленым цветом в логгере
-        self.port_logger_controller.write_log("in", raw_bytes.hex(" ").upper())
+        active_proto = self.com_port_controller.active_protocol_name
 
-        if self.com_port_controller.active_protocol_name != "IDS" or not self.ids_protocol_instance:
+        # Если протокол не выбран или это базовый режим без парсеров, выводим сырые куски в реал-тайме
+        if active_proto not in ["IDS", "Gels", "Aps"]:
+            self.port_logger_controller.write_log("in", raw_bytes.hex(" ").upper())
             return
 
-        # Накапливаем байты для сборки кадров протокола IDS
+        # Накапливаем поступающие порции байт в системный буфер кадра
         self.rx_buffer.extend(raw_bytes)
 
-        while True:
-            frame = self.ids_protocol_instance.parse_stream(self.rx_buffer)
-            if frame is None:
-                break
+        # --- Потоковая сборка и монолитное логирование кадров IDS ---
+        if active_proto == "IDS" and self.ids_protocol_instance:
+            while True:
+                # Пытаемся собрать полный пакет из накопленного буфера
+                frame = self.ids_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None:
+                    break  # Ждем досылки оставшихся кусков кадра из порта
 
-            if not frame.get("is_valid", False):
-                continue
+                # Вытаскиваем полный сохраненный сырой пакет и выводим ОДНОЙ цельной строкой
+                raw_packet = frame.get("raw_packet", b"")
+                if raw_packet:
+                    direction = "in" if frame.get("is_valid", False) else "err"
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
 
-            payload_bytes = frame.get("payload", b"")
-            parsed_data = self.ids_protocol_instance.parse_dynamic_payload(payload_bytes)
-            if parsed_data:
-                self.data_parsed_signal.emit(parsed_data)
+                if not frame.get("is_valid", False):
+                    continue
 
-    def handle_manual_command_dispatch(self, command_code: int, payload: bytes):
-        """Принимает сигнал ручной отправки команды от SendCmdController."""
-        if not self.com_port_controller.model.is_connected() or not self.ids_protocol_instance:
+                payload_bytes = frame.get("payload", b"")
+                parsed_data = self.ids_protocol_instance.parse_dynamic_payload(payload_bytes)
+                if parsed_data:
+                    self.data_parsed_signal.emit(parsed_data)
+
+        # --- Потоковая сборка и монолитное логирование кадров Gels ---
+        elif active_proto == "Gels" and self.gels_protocol_instance:
+            while True:
+                frame = self.gels_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None:
+                    break
+
+                raw_packet = frame.get("raw_packet", b"")
+                if raw_packet:
+                    direction = "in" if frame.get("is_valid", False) else "err"
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
+
+                if frame.get("is_valid", False):
+                    print(f"[ApplicationController] Получен цельный пакет Gels: {frame}")
+
+        # --- Потоковая сборка и монолитное логирование кадров Aps ---
+        elif active_proto == "Aps" and self.aps_protocol_instance:
+            while True:
+                frame = self.aps_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None:
+                    break
+
+                raw_packet = frame.get("raw_packet", b"")
+                if raw_packet:
+                    direction = "in" if frame.get("is_valid", False) else "err"
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
+
+                if frame.get("is_valid", False):
+                    print(f"[ApplicationController] Получен цельный пакет Aps: {frame}")
+
+    def handle_manual_command_dispatch(self, dst_addr: int, src_addr: int, command_code: int, payload: bytes):
+        """Принимает сигнал ручной отправки команды от SendCmdController и формирует пакет."""
+        if not self.com_port_controller.model.is_connected():
             self.main_window.com_port_view.show_error("Ошибка", "Передача невозможна: COM-порт закрыт.")
             return
 
-        # Динамически считываем адреса прямо с развернутой комплексной панели управления IDS (если она активна)
-        if self.main_window.ids_panel_view is not None:
-            addrs = self.main_window.ids_panel_view.get_addresses()
-            try:
-                dst_addr = int(addrs["dst"], 16)
-                src_addr = int(addrs["src"], 16)
-            except ValueError:
-                dst_addr, src_addr = 0x29, 0x00
+        if self.com_port_controller.active_protocol_name == "IDS" and self.ids_protocol_instance:
+            full_packet = self.ids_protocol_instance.pack_message(
+                dst_addr=dst_addr, src_addr=src_addr, cmd=command_code, payload=payload
+            )
+        elif self.com_port_controller.active_protocol_name == "Gels" and self.gels_protocol_instance:
+            full_packet = self.gels_protocol_instance.pack_message(
+                dev_addr=dst_addr, mod_addr=src_addr, cmd=command_code, payload=payload
+            )
+        elif self.com_port_controller.active_protocol_name == "Aps" and self.aps_protocol_instance:
+            # ИСПРАВЛЕНО: Нативно собираем кадр APS через фабричный метод твоего класса ApsProtocol
+            full_packet = self.aps_protocol_instance.pack_message(
+                dst_addr=dst_addr, src_addr=src_addr, cmd=command_code, payload=payload
+            )
         else:
-            dst_addr, src_addr = 0x29, 0x00
-
-        # Собираем кастомный бинарный кадр с полезной нагрузкой через IdsProtocol
-        full_packet = self.ids_protocol_instance.pack_message(
-            dst_addr=dst_addr, src_addr=src_addr, cmd=command_code, payload=payload
-        )
+            full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
         self.com_port_controller.model.send_data(full_packet)
         self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
 
     def process_pattern_save_request(self, command_code: int, payload: bytes):
         """Перехватывает запрос, собирает полный бинарный кадр и открывает модальное окно сохранения шаблонов."""
-        if self.main_window.ids_panel_view is not None:
-            addrs = self.main_window.ids_panel_view.get_addresses()
-            try:
-                dst_addr = int(addrs["dst"], 16)
-                src_addr = int(addrs["src"], 16)
-            except ValueError:
-                dst_addr, src_addr = 0x29, 0x00
-        else:
+        addrs = self.main_window.send_cmd_view.get_addresses_values()
+        try:
+            dst_addr = int(addrs["dst"], 16)
+            src_addr = int(addrs["src"], 16)
+        except ValueError:
             dst_addr, src_addr = 0x29, 0x00
 
-        if self.ids_protocol_instance:
+        if self.com_port_controller.active_protocol_name == "IDS" and self.ids_protocol_instance:
             full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+        elif self.com_port_controller.active_protocol_name == "Gels" and self.gels_protocol_instance:
+            full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+        elif self.com_port_controller.active_protocol_name == "Aps":
+            # ИСПРАВЛЕНО: Сборка оригинального превью кадра APS перед записью шаблона на диск
+            if self.aps_protocol_instance:
+                full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+            else:
+                tmp_aps = ApsProtocol()
+                full_packet = tmp_aps.pack_message(dst_addr, src_addr, command_code, payload)
         else:
-            from app.models.protocols.IdsProtocol import IdsProtocol
-            tmp_proto = IdsProtocol({})
-            full_packet = tmp_proto.pack_message(dst_addr, src_addr, command_code, payload)
+            full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
         packet_hex_string = full_packet.hex(" ").upper()
 
-        # Инициализируем MVC-подсистему сохранения шаблона команды
         save_view = SaveCmdPatternView(formatted_packet_hex=packet_hex_string, parent=self.main_window)
         save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
 
         proto_name = self.com_port_controller.active_protocol_name
         if save_controller.execute_save(proto_name, full_packet):
-            # Мгновенно обновляем список шаблонов и состояние радиокнопок на экране после успешной записи на диск
             self.send_cmd_controller.configure_for_protocol(proto_name)
 
-    def execute_ids_data_query(self, selected_ids: list, addresses: dict):
+    def execute_ids_data_query(self, selected_ids: list):
         """Формирует кодограмму запроса 0x11 по протоколу IDS на основе сигналов от IdsPanelController."""
         if not self.com_port_controller.model.is_connected() or not self.ids_protocol_instance:
             self.main_window.com_port_view.show_error("Ошибка", "Передача невозможна: COM-порт закрыт.")
             return
 
         if not selected_ids:
-            self.main_window.com_port_view.show_error("Предупреждение", "Выберите хотя бы один параметр для запроса.")
             return
 
+        # Считываем актуальные адреса из полей ввода сквозного верхнего пульта SendCmdView
+        addrs = self.main_window.send_cmd_view.get_addresses_values()
         try:
-            dst_addr = int(addresses.get("dst", "29"), 16)
-            src_addr = int(addresses.get("src", "00"), 16)
+            dst_addr = int(addrs["dst"], 16)
+            src_addr = int(addrs["src"], 16)
         except ValueError:
             dst_addr, src_addr = 0x29, 0x00
 
@@ -206,7 +261,7 @@ class ApplicationController(QObject):
         for param_id in selected_ids:
             payload.append(param_id)
 
-        command_code = 0x11  # ReadData
+        command_code = 0x11  # ReadData согласно спецификации
 
         full_packet = self.ids_protocol_instance.pack_message(
             dst_addr=dst_addr, src_addr=src_addr, cmd=command_code, payload=bytes(payload)

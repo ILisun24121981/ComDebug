@@ -27,6 +27,7 @@ class ApsProtocol(IProtocol):
         head_bytes = struct.pack(self.HEAD_FORMAT, dst_addr, src_addr, total_size, cmd)
         crc = sum(head_bytes + payload) & 0xFFFF
         return head_bytes + payload + struct.pack(self.TAIL_FORMAT, crc)
+
     def parse_stream(self, rx_buffer: bytearray) -> Optional[dict]:
         if len(rx_buffer) < self.HEAD_SIZE:
             return None
@@ -53,6 +54,7 @@ class ApsProtocol(IProtocol):
         status_code = unpacked_head[3]
         return {
             "is_valid": True,
+            "raw_packet": complete_packet,
             "destinationAddress": unpacked_head[0],
             "sourceAddress": unpacked_head[1],
             "status_code": status_code,

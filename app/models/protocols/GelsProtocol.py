@@ -26,13 +26,11 @@ class GelsProtocol(IProtocol):
 
     @staticmethod
     def calc_gels_checksum(data: bytes | bytearray, check_sum: int = 0) -> int:
-        """Вычисление циклической контрольной суммы ГЭЛС."""
         for byte in data:
             check_sum ^= byte
             left_shift = (check_sum << 7) & 0xFF
             right_shift = check_sum >> 1
             check_sum = left_shift | right_shift
-
             if check_sum > 127:
                 check_sum ^= 0x3C
         return check_sum
@@ -41,6 +39,7 @@ class GelsProtocol(IProtocol):
         head_bytes = struct.pack(self.HEAD_FORMAT, dev_addr, mod_addr, cmd, len(payload))
         calculated_crc = self.calc_gels_checksum(head_bytes + payload)
         return head_bytes + payload + struct.pack(self.TAIL_FORMAT, calculated_crc, self.END_MARKER)
+
     def parse_stream(self, rx_buffer: bytearray) -> Optional[dict]:
         if len(rx_buffer) < self.HEAD_SIZE:
             return None
@@ -67,6 +66,7 @@ class GelsProtocol(IProtocol):
         status_code = unpacked_head[2]
         return {
             "is_valid": True,
+            "raw_packet": complete_packet,
             "deviceAddress": unpacked_head[0],
             "moduleAddress": unpacked_head[1],
             "status_code": status_code,

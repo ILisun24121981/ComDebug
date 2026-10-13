@@ -4,18 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Стабильно">
-      <change afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/SaveCmdPatternController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/SendCmdController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/HexPayloadDialog.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/SaveCmdPatternView.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Добавил шаблоны команд">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config/IDS_ID.json" beforeDir="false" afterPath="$PROJECT_DIR$/Config/IDS_ID.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/SendCmdController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SendCmdController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/ConfigManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/ConfigManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/protocols/ApsProtocol.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/protocols/ApsProtocol.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/protocols/GelsProtocol.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/protocols/GelsProtocol.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/protocols/IdsProtocol.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/protocols/IdsProtocol.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/IdsPanelView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/SendCmdView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,6 +46,7 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.ApplicationController.executor": "Run",
+    "Python.IdsProtocol.executor": "Run",
     "Python.MainWindow.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -100,7 +102,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791879563586</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Добавил шаблоны команд">
+      <option name="closed" value="true" />
+      <created>1791888070694</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1791888070694</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -109,6 +119,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First Commit" />
     <MESSAGE value="Стабильно" />
-    <option name="LAST_COMMIT_MESSAGE" value="Стабильно" />
+    <MESSAGE value="Добавил шаблоны команд" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавил шаблоны команд" />
   </component>
 </project>

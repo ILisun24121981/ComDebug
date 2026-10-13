@@ -155,15 +155,24 @@ class ConfigManager:
 
         return structures_dict
 
-    def load_ids_identifiers(self) -> Dict[int, str]:
+    def load_ids_identifiers(self) -> Dict[int, dict]:
         """
-        Загружает карту динамических идентификаторов параметров для протокола IDS из IDS_ID.json.
-        Возвращает плоский словарь {int_id: "строковое_имя"}.
+        ИСПРАВЛЕНО: Загружает расширенную карту динамических идентификаторов и их типов для IDS.
+        Возвращает словарь вида {int_id: {"name": "...", "type": "..."}}.
         """
         default_ids = {
-            0x01: "INC", 0x02: "AZM", 0x03: "SHRISK", 0x04: "MSHRMS",
-            0x05: "SS", 0x06: "CMD", 0x07: "GRUP", 0x08: "GRR",
-            0x09: "GRD", 0x0A: "GRL", 0x0B: "GRA", 0xF0: "STATUS"
+            0x01: {"name": "INC", "type": "uint16"},
+            0x02: {"name": "AZM", "type": "uint16"},
+            0x03: {"name": "SHRISK", "type": "3bits"},
+            0x04: {"name": "MSHRMS", "type": "uint16"},
+            0x05: {"name": "SS", "type": "2bits"},
+            0x06: {"name": "CMD", "type": "uint8"},
+            0x07: {"name": "GRUP", "type": "uint8"},
+            0x08: {"name": "GRR", "type": "uint8"},
+            0x09: {"name": "GRD", "type": "uint8"},
+            0x0A: {"name": "GRL", "type": "uint8"},
+            0x0B: {"name": "GRA", "type": "uint8"},
+            0xF0: {"name": "STATUS", "type": "uint32"}
         }
 
         if not self.ids_json_path.exists():
@@ -178,7 +187,10 @@ class ConfigManager:
             json_ids = data.get("IDS_Identifiers", {})
             for hex_id_str, meta in json_ids.items():
                 int_id = int(hex_id_str, 16) if hex_id_str.lower().startswith("0x") else int(hex_id_str)
-                result[int_id] = meta.get("name", f"ID_{hex_id_str}")
+                result[int_id] = {
+                    "name": meta.get("name", f"ID_{hex_id_str}"),
+                    "type": meta.get("type", "uint32")  # Дефолтный фоллбэк на полные 32 бита
+                }
             return result
         except Exception as e:
             print(f"[ConfigManager] Ошибка парсинга IDS_ID.json: {e}")

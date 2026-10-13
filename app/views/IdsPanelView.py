@@ -1,11 +1,12 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QScrollArea, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QScrollArea, QPushButton, \
+    QLineEdit
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
 class IdsPanelView(QWidget):
     """
     Специализированная панель управления прибором IDS (PyQt6 View).
-    Объединяет HEX-адресацию шины, чекбоксы запросов и поля результатов ответов.
+    Инкапсулирует таблицу чекбоксов параметров КНБК, поля ответов и статус-бар сессии.
     """
     query_requested = pyqtSignal()
     param_toggled = pyqtSignal(int, bool)
@@ -21,30 +22,7 @@ class IdsPanelView(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(10)
 
-        # 1. Панель адресации (addresses_layout)
-        self.addresses_layout = QHBoxLayout()
-        self.addresses_layout.setSpacing(8)
-
-        self.dst_label = QLabel("Адрес Получателя (HEX):")
-        self.dst_input = QLineEdit()
-        self.dst_input.setPlaceholderText("Например: 29")
-        self.dst_input.setFixedWidth(60)
-        self.dst_input.setText("29")
-
-        self.src_label = QLabel("Адрес Отправителя (HEX):")
-        self.src_input = QLineEdit()
-        self.src_input.setPlaceholderText("Например: 00")
-        self.src_input.setFixedWidth(60)
-        self.src_input.setText("00")
-
-        self.addresses_layout.addWidget(self.dst_label)
-        self.addresses_layout.addWidget(self.dst_input)
-        self.addresses_layout.addWidget(self.src_label)
-        self.addresses_layout.addWidget(self.src_input)
-        self.addresses_layout.addStretch()
-        main_layout.addLayout(self.addresses_layout)
-
-        # 2. Область прокрутки параметров
+        # 1. Область прокрутки параметров
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet("border: none; background: transparent;")
@@ -54,7 +32,7 @@ class IdsPanelView(QWidget):
         self.grid.setSpacing(10)
         self.grid.setContentsMargins(5, 5, 5, 5)
 
-        # Шапка таблицы
+        # Шапка таблицы параметров КНБК
         label_req = QLabel("Запрос (Параметр КНБК)")
         label_req.setStyleSheet("font-weight: bold; color: #333333;")
         label_resp = QLabel("Ответ")
@@ -63,11 +41,17 @@ class IdsPanelView(QWidget):
         self.grid.addWidget(label_req, 0, 0)
         self.grid.addWidget(label_resp, 0, 1)
 
-        # Строим строки параметров
+        # Строим строки параметров КНБК
         self._build_rows(identifiers_map)
 
         self.scroll_area.setWidget(container_widget)
         main_layout.addWidget(self.scroll_area, stretch=1)
+
+        # 2. Новая строка: Текстовый статус-бар сессии опроса
+        self.status_bar_label = QLabel("Система готова к опросу")
+        self.status_bar_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.status_bar_label.setStyleSheet("color: #555555; font-style: italic; font-size: 11px; padding-left: 2px;")
+        main_layout.addWidget(self.status_bar_label)
 
         # 3. Кнопка «Запрос данных»
         self.query_button = QPushButton("Запрос данных")
@@ -78,7 +62,10 @@ class IdsPanelView(QWidget):
 
     def _build_rows(self, identifiers_map: dict):
         row = 1
-        for param_id, param_name in identifiers_map.items():
+        for param_id, meta in identifiers_map.items():
+            # ИСПРАВЛЕНО: Безопасно вытягиваем строку имени из вложенного словаря метаданных
+            param_name = meta["name"] if isinstance(meta, dict) else str(meta)
+
             cb = QCheckBox(f"{param_name} (0x{param_id:02X})")
             cb.setStyleSheet("""
                 QCheckBox { color: #000000; font-weight: normal; }
@@ -103,18 +90,28 @@ class IdsPanelView(QWidget):
 
         self.grid.setRowStretch(row, 1)
 
+    # --- Публичные методы API для управления интерфейсом из Контроллера ---
+    def set_interactive_state(self, enabled: bool):
+        """Блокирует или разблокирует чекбоксы и кнопку опроса для защиты транзакции."""
+        self.query_button.setEnabled(enabled)
+        for cb in self.ids_checkboxes.values():
+            cb.setEnabled(enabled)
+
+        if enabled:
+            self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white;")
+        else:
+            self.query_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0;")
+
+    def set_session_status(self, text: str, color_hex: str = "#555555", font_bold: bool = False):
+        """Обновляет text и цвет статус-бара панели."""
+        self.status_bar_label.setText(text)
+        weight = "bold" if font_bold else "normal"
+        self.status_bar_label.setStyleSheet(
+            f"color: {color_hex}; font-weight: {weight}; font-size: 11px; padding-left: 2px;")
+
     def update_value(self, param_name: str, value: str):
         if param_name in self.ids_value_labels:
             self.ids_value_labels[param_name].setText(value)
 
     def get_selected_param_ids(self) -> list[int]:
         return [param_id for param_id, cb in self.ids_checkboxes.items() if cb.isChecked()]
-
-    def get_addresses(self) -> dict:
-        return {
-            "dst": self.dst_input.text().strip(),
-            "src": self.src_input.text().strip()
-        }
-
-
-from PyQt6.QtWidgets import QLineEdit  # Импорт для полей ввода
