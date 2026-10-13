@@ -3,7 +3,7 @@ import pathlib
 from PyQt6.QtWidgets import QApplication
 from app.models.ConfigManager import ConfigManager
 from app.views.MainWindow import MainWindow
-from app.controllers.ComPortController import ComPortController
+from app.controllers.ApplicationController import ApplicationController
 
 
 def ensure_config_environment():
@@ -11,6 +11,7 @@ def ensure_config_environment():
     cfg_dir = pathlib.Path("./Config")
     cfg_dir.mkdir(exist_ok=True)
 
+    # Минимальный шаблон для настроек портов, если файла нет на диске
     port_file = cfg_dir / "port_settings.json"
     if not port_file.exists():
         with open(port_file, "w", encoding="utf-8") as f:
@@ -18,24 +19,26 @@ def ensure_config_environment():
 
 
 def main():
+    # Проверяем рабочую среду конфигураций JSON перед стартом
     ensure_config_environment()
 
-    # Инициализация движка PyQt6
+    # Инициализация системного движка PyQt6
     app = QApplication(sys.argv)
 
-    # 1. Создаем менеджер конфигураций (Model)
+    # 1. Инициализируем центральную модель конфигураций (Model)
     config_manager = ConfigManager()
 
-    # 2. Создаем главное окно, которое внутри себя уже содержит ComPortView (View)
+    # 2. Инициализируем главное окно (View Container)
     main_window = MainWindow()
 
-    # 3. Соединяем слои через Контроллер, передавая ComPortView из главного окна
-    controller = ComPortController(
+    # 3. Запускаем корневой оркестратор, передавая ему Модель и Вид
+    # Он автоматически соберет всю иерархию изолированных контроллеров
+    root_controller = ApplicationController(
         config_manager=config_manager,
-        view=main_window.com_port_view
+        main_window=main_window
     )
 
-    # Отображаем окно на экране
+    # Отображаем главное окно оператора КНБК на экране
     main_window.show()
     sys.exit(app.exec())
 

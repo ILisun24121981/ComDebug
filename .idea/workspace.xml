@@ -4,25 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/RSS.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Config/IDS_ID.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Config/port_settings.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/ComPortController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/ComPortModel.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/ConfigManager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/protocols/ApsProtocol.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/protocols/GelsProtocol.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/protocols/IProtocol.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/protocols/IdsProtocol.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/protocols/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/ComPortView.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="First Commit">
+      <change afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/controllers/IdsParametersController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/controllers/PortLoggerController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/IdsParametersView.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/PortLoggerView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/ComPortController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ComPortController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/ComPortModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/ComPortModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,6 +43,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.ApplicationController.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -89,9 +82,22 @@
       <option name="presentableId" value="Default" />
       <updated>1787682143964</updated>
     </task>
+    <task id="LOCAL-00001" summary="First Commit">
+      <option name="closed" value="true" />
+      <created>1791810298703</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1791810298703</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="First Commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="First Commit" />
   </component>
 </project>

@@ -1,7 +1,7 @@
 import threading
 import time
-from collections.abc import Callable
 from typing import Union, Optional
+from PyQt6.QtCore import QObject, pyqtSignal
 
 try:
     import serial
@@ -11,15 +11,19 @@ except ImportError:
     SERIAL_AVAILABLE = False
 
 
-class ComPortModel:
-    """Транспортный уровень для работы с физическим последовательным интерфейсом прибора."""
+class ComPortModel(QObject):
+    """
+    Транспортный уровень последовательного интерфейса (PyQt6 Model).
+    Генерирует нативный межпотоковый сигнал при поступлении любых байт (включая мусор).
+    """
+    # Сигнал передает сырые бинарные байты мгновенно в момент вычитки
+    data_received = pyqtSignal(bytes)
 
     def __init__(self):
+        super().__init__()
         self.serial_connection = None
         self.read_thread: Optional[threading.Thread] = None
         self.is_reading: bool = False
-        # Слот-колбэк, куда мы будем перенаправлять считанные сырые байты
-        self.on_data_received_callback: Optional[Callable[[bytes], None]] = None
 
     @staticmethod
     def get_available_ports() -> list[str]:
@@ -40,7 +44,6 @@ class ComPortModel:
         if not SERIAL_AVAILABLE:
             raise RuntimeError("Библиотека pyserial не установлена. Работа с портами невозможна.")
 
-        # Конвертация строковых конфигураций JSON в типы библиотеки pyserial
         parity_map = {
             "none": serial.PARITY_NONE, "even": serial.PARITY_EVEN,
             "odd": serial.PARITY_ODD, "mark": getattr(serial, 'PARITY_MARK', 'M'),
@@ -58,7 +61,6 @@ class ComPortModel:
         xonxoff = "xon" in flow_control.lower()
         rtscts = "rts" in flow_control.lower()
 
-        # Выполнение системного открытия порта шины данных
         self.serial_connection = serial.Serial(
             port=port_name, baudrate=baud_rate, bytesize=bytesize,
             parity=pyserial_parity, stopbits=pyserial_stopbits,
@@ -76,7 +78,7 @@ class ComPortModel:
         self.is_reading = False
         if self.read_thread is not None:
             if self.read_thread.is_alive():
-                self.read_thread.join(timeout=0.5)
+                self.read_thread.join(timeout=0.3)
             self.read_thread = None
         if self.serial_connection is not None:
             if hasattr(self.serial_connection, 'close'):
@@ -99,14 +101,16 @@ class ComPortModel:
         return bytes_written
 
     def _read_loop(self):
-        """Бесконечный фоновый поток побайтовой сборки входящего потока данных."""
+        """Бесконечный фоновый поток мгновенно бросает сигнал при появлении любых байт."""
         while self.is_reading:
             if self.serial_connection and self.serial_connection.is_open:
                 try:
                     if self.serial_connection.in_waiting > 0:
                         raw_bytes = self.serial_connection.read(self.serial_connection.in_waiting)
-                        if raw_bytes and self.on_data_received_callback:
-                            self.on_data_received_callback(raw_bytes)
+                        if raw_bytes:
+                            # Мгновенно генерируем Qt-сигнал.
+                            # Слой C++ Qt сам перенаправит вызов в главный GUI поток.
+                            self.data_received.emit(raw_bytes)
                     else:
                         time.sleep(0.01)
                 except Exception:
