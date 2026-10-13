@@ -4,17 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="First Commit">
-      <change afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/IdsParametersController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/PortLoggerController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/IdsParametersView.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/PortLoggerView.py" afterDir="false" />
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Стабильно">
+      <change afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/controllers/SaveCmdPatternController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/controllers/SendCmdController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/HexPayloadDialog.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/SaveCmdPatternView.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/ComPortController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ComPortController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/ComPortModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/ComPortModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,6 +45,7 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.ApplicationController.executor": "Run",
+    "Python.MainWindow.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -90,7 +92,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791810298703</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Стабильно">
+      <option name="closed" value="true" />
+      <created>1791879563586</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1791879563586</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -98,6 +108,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First Commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="First Commit" />
+    <MESSAGE value="Стабильно" />
+    <option name="LAST_COMMIT_MESSAGE" value="Стабильно" />
   </component>
 </project>
