@@ -1,5 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QRadioButton, QComboBox, \
-    QStackedWidget, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QRadioButton, QComboBox, QStackedWidget, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
@@ -11,6 +10,7 @@ class SendCmdView(QWidget):
     """
     send_clicked = pyqtSignal()
     save_clicked = pyqtSignal()
+    edit_patterns_clicked = pyqtSignal()
     payload_requested = pyqtSignal()
     edit_payload_requested = pyqtSignal()
 
@@ -27,10 +27,6 @@ class SendCmdView(QWidget):
 
         # Промышленная строго зафиксированная рамка-контейнер
         self.border_frame = QFrame()
-
-        # ИСПРАВЛЕНО: Из QSS полностью удалены любые правила стилизации QRadioButton.
-        # Теперь радиокнопки используют чистый, эталонный системный стиль операционной системы:
-        # их внешний вид статичен, текст не пропадает, меняется только внутренний кругляшок.
         self.border_frame.setStyleSheet("""
             QFrame {
                 border: 1px solid #CCCCCC;
@@ -86,8 +82,6 @@ class SendCmdView(QWidget):
         self.radio_saved = QRadioButton("Сохраненная")
         self.radio_new = QRadioButton("Новая")
 
-        # ИСПРАВЛЕНО: Убраны локальные костыльные переопределения styles для кнопок,
-        # давая им работать на нативных вызовах C++ библиотек Qt
         self.radio_saved.toggled.connect(lambda checked: self.mode_changed.emit(True) if checked else None)
         self.radio_new.toggled.connect(lambda checked: self.mode_changed.emit(False) if checked else None)
 
@@ -121,8 +115,15 @@ class SendCmdView(QWidget):
         self.send_button.clicked.connect(self.send_clicked.emit)
         self.send_cmd_layout.addWidget(self.send_button)
 
+        # ИСПРАВЛЕНО: Кнопка «Редактировать» зафиксирована на длине 105 пикселей
+        self.edit_patterns_button = QPushButton("Редактировать")
+        self.edit_patterns_button.setFixedSize(105, 24)
+        self.edit_patterns_button.clicked.connect(self.edit_patterns_clicked.emit)
+        self.send_cmd_layout.addWidget(self.edit_patterns_button)
+
+        # ИСПРАВЛЕНО: Кнопка «Сохранить» приведена к той же длине 105 пикселей для исключения прыжков геометрии
         self.save_button = QPushButton("Сохранить")
-        self.save_button.setFixedSize(85, 24)
+        self.save_button.setFixedSize(105, 24)
         self.save_button.clicked.connect(self.save_clicked.emit)
         self.send_cmd_layout.addWidget(self.save_button)
 
@@ -215,6 +216,7 @@ class SendCmdView(QWidget):
         self._recalculate_total_height()
 
     def _recalculate_total_height(self):
+        """Внутренний метод: динамически пересчитывает жесткую высоту панели."""
         base_h = 74
         if self.radio_container.isVisible():
             base_h += 24
@@ -227,10 +229,12 @@ class SendCmdView(QWidget):
             self.cmd_stack.setCurrentIndex(1)
             self.bottom_left_stack.setCurrentIndex(1)
             self.save_button.setVisible(False)
+            self.edit_patterns_button.setVisible(True)
         else:
             self.cmd_stack.setCurrentIndex(0)
             self.bottom_left_stack.setCurrentIndex(0)
             self.save_button.setVisible(True)
+            self.edit_patterns_button.setVisible(False)
             self.info_cmd_label.setText("")
 
     def populate_patterns(self, pattern_names: list[str]):

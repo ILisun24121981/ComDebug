@@ -5,8 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="изменил отображение IDS Panel">
+      <change afterPath="$PROJECT_DIR$/app/controllers/ManageCmdPatternsController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/ManageCmdPatternsView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/IdsPanelView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/SendCmdController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SendCmdController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/views/SendCmdView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -142,7 +145,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791981097801</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="изменил отображение IDS Panel">
+      <option name="closed" value="true" />
+      <created>1791983102951</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1791983102951</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

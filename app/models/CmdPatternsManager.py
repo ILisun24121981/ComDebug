@@ -57,18 +57,13 @@ class CmdPatternsManager:
             print(f"[CmdPatternsManager] Ошибка сохранения служебных адресов: {e}")
 
     def extract_pattern_data(self, protocol_name: str, pattern_name: str) -> dict:
-        """
-        Вычитывает сохраненную HEX-строку кадра и разбирает её на логические составляющие.
-        ИСПРАВЛЕНО: Срез полезной нагрузки Gels переведен на индекс 5, исключая байты длины.
-        """
+        """Вычитывает сохраненную HEX-строку кадра и разбирает её на логические составляющие."""
         patterns = self._read_file(protocol_name)
         hex_string = patterns.get(pattern_name, "").replace(" ", "")
 
         result = {
-            "dst_addr": 0x00,
-            "src_addr": 0x00,
-            "cmd_code": 0x00,
-            "payload_bytes": b""
+            "dst_addr": 0x00, "src_addr": 0x00,
+            "cmd_code": 0x00, "payload_bytes": b""
         }
 
         if not hex_string or pattern_name == "__service_address__":
@@ -79,28 +74,21 @@ class CmdPatternsManager:
             if len(full_frame_bytes) < 5:
                 return result
 
-            # Первые два байта во всех протоколах — адресация
             result["dst_addr"] = int(full_frame_bytes[0])
             result["src_addr"] = int(full_frame_bytes[1])
 
-            # Извлекаем код команды и полезную нагрузку в зависимости от протокола
             if protocol_name == "IDS":
                 if len(full_frame_bytes) >= 6:
                     result["cmd_code"] = int(full_frame_bytes[4])
                     result["payload_bytes"] = full_frame_bytes[5:-1]
-
             elif protocol_name == "Aps":
                 if len(full_frame_bytes) >= 7:
                     result["cmd_code"] = int(full_frame_bytes[4])
                     result["payload_bytes"] = full_frame_bytes[5:-2]
-
             elif protocol_name == "Gels":
-                # Gels заголовок: DEV(1B) + MOD(1B) + CMD(1B) + SIZE(2B)
                 if len(full_frame_bytes) >= 7:
-                    result["cmd_code"] = int(full_frame_bytes[2])  # Код команды лежит в 3-м байте (индекс 2)
-                    # ИСПРАВЛЕНО: Payload начинается строго с 6-го байта (индекс 5), пропуская 2 байта размера
+                    result["cmd_code"] = int(full_frame_bytes[2])
                     result["payload_bytes"] = full_frame_bytes[5:-2]
-
         except Exception as e:
             print(f"[CmdPatternsManager] Ошибка бинарного разбора кадра шаблона {protocol_name}: {e}")
 
@@ -125,8 +113,29 @@ class CmdPatternsManager:
             print(f"[CmdPatternsManager] Ошибка записи в {file_name}: {e}")
             return False
 
+    # ИСПРАВЛЕНО: Добавлен метод группового удаления выбранных оператором шаблонов с диска
+    def delete_patterns(self, protocol_name: str, patterns_to_delete: list[str]) -> bool:
+        """Удаляет список названий команд из JSON-конфигурации протокола."""
+        if not protocol_name or not patterns_to_delete:
+            return False
+
+        file_name = f"{protocol_name}CmdPatterns.json"
+        file_path = self.config_dir / file_name
+
+        patterns = self._read_file(protocol_name)
+        for name in patterns_to_delete:
+            if name in patterns:
+                del patterns[name]
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(patterns, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            print(f"[CmdPatternsManager] Ошибка при удалении шаблонов из {file_name}: {e}")
+            return False
+
     def _read_file(self, protocol_name: str) -> dict:
-        """Внутренний вспомогательный метод безопасного чтения файла с диска."""
         if not protocol_name:
             return {}
         file_name = f"{protocol_name}CmdPatterns.json"

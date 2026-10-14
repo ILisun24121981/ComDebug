@@ -1,13 +1,15 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QDialog
 from app.views.HexPayloadDialog import HexPayloadDialog
+from app.views.ManageCmdPatternsView import ManageCmdPatternsView
+from app.controllers.ManageCmdPatternsController import ManageCmdPatternsController
 from app.models.CmdPatternsManager import CmdPatternsManager
 
 
 class SendCmdController(QObject):
     """
     Контроллер ручной отправки и интеллектуального переключения шаблонов (MVC).
-    Полностью защищен от зацикливания C++ стека за счет физического disconnect/connect сигналов.
+    ИСПРАВЛЕНО: Интегрирован вызов переименованной подсистемы управления командами.
     """
     save_pattern_requested = pyqtSignal(int, bytes)
 
@@ -26,10 +28,8 @@ class SendCmdController(QObject):
         self.is_saved_mode_active = False
         self.on_command_ready_to_dispatch = None
 
-        # Первичное безопасное подключение сигналов интерфейса
         self._connect_view_signals()
 
-        # Стартовая чистая инициализация дефолтного состояния
         self.view.blockSignals(True)
         self.view.set_radio_layout_visible(False)
         self.view.set_addresses_container_visible(False)
@@ -38,19 +38,19 @@ class SendCmdController(QObject):
         self.view.blockSignals(False)
 
     def _connect_view_signals(self):
-        """Внутренний метод: связывает сигналы представления со слотами контроллера."""
         self.view.send_clicked.connect(self.process_manual_send)
         self.view.save_clicked.connect(self.process_manual_save_click)
+        self.view.edit_patterns_clicked.connect(self.open_manage_patterns_dialog)
         self.view.payload_requested.connect(self.open_payload_dialog)
         self.view.edit_payload_requested.connect(self.open_payload_dialog)
         self.view.mode_changed.connect(self.handle_mode_change)
         self.view.pattern_selected.connect(self.handle_pattern_selection)
 
     def _disconnect_view_signals(self):
-        """Внутренний метод: полностью изолирует контроллер от ложных ивентов рендеринга."""
         try:
             self.view.send_clicked.disconnect(self.process_manual_send)
             self.view.save_clicked.disconnect(self.process_manual_save_click)
+            self.view.edit_patterns_clicked.disconnect(self.open_manage_patterns_dialog)
             self.view.payload_requested.disconnect(self.open_payload_dialog)
             self.view.edit_payload_requested.disconnect(self.open_payload_dialog)
             self.view.mode_changed.disconnect(self.handle_mode_change)
@@ -59,10 +59,8 @@ class SendCmdController(QObject):
             pass
 
     def configure_for_protocol(self, protocol_name: str):
-        """Вызывается внешним оркестратором сразу после нажатия кнопки 'Подключить'."""
         self.active_protocol = protocol_name
 
-        # ИЗОЛИРУЕМ View на время тотальной перезаписи полей комбобокса и радиокнопок
         self._disconnect_view_signals()
         self.view.blockSignals(True)
 
@@ -81,11 +79,9 @@ class SendCmdController(QObject):
             self.is_saved_mode_active = True
             self.view.set_view_mode(True)
 
-            # Возвращаем контроль над сигналами
             self.view.blockSignals(False)
             self._connect_view_signals()
 
-            # Считываем параметры стартового выбранного шаблона
             self.handle_pattern_selection(self.view.pattern_combobox.currentText())
         else:
             self.view.set_radio_layout_visible(False)
@@ -99,6 +95,17 @@ class SendCmdController(QObject):
 
             self.view.blockSignals(False)
             self._connect_view_signals()
+
+    # ИСПРАВЛЕНО: Обновлено создание экземпляров под переименованные классы MVC
+    def open_manage_patterns_dialog(self):
+        """Запускает переименованное окно ManageCmdPatternsView и обновляет пульт."""
+        pattern_names = self.patterns_manager.load_patterns_names(self.active_protocol)
+
+        dialog = ManageCmdPatternsView(pattern_names, parent=self.view)
+        controller = ManageCmdPatternsController(dialog, self.patterns_manager, self.active_protocol)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.configure_for_protocol(self.active_protocol)
 
     def handle_mode_change(self, is_saved_mode: bool):
         self.is_saved_mode_active = is_saved_mode
@@ -137,7 +144,7 @@ class SendCmdController(QObject):
 
         raw_cmd = data["cmd_code"]
         if isinstance(raw_cmd, (bytes, bytearray)) and len(raw_cmd) >= 5:
-            self.current_cmd_code = int(raw_cmd[2]) if self.active_protocol == "Gels" else int(raw_cmd[4])
+            self.current_cmd_code = int(raw_cmd) if self.active_protocol == "Gels" else int(raw_cmd)
         elif isinstance(raw_cmd, int):
             self.current_cmd_code = raw_cmd
         else:
