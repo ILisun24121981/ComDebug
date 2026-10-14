@@ -8,6 +8,8 @@ class IdsPanelView(QWidget):
     Инкапсулирует таблицу чекбоксов параметров КНБК, поля ответов и статус-бар сессии.
     """
     query_requested = pyqtSignal()
+    # ИСПРАВЛЕНО: Добавлен новый Qt-сигнал для перехвата запроса на сохранение шаблона
+    save_pattern_requested = pyqtSignal()
     param_toggled = pyqtSignal(int, bool)
 
     def __init__(self, identifiers_map: dict, parent=None):
@@ -72,12 +74,25 @@ class IdsPanelView(QWidget):
         self.status_bar_label.setStyleSheet("color: #555555; font-style: italic; font-size: 11px; padding-left: 2px;")
         inner_layout.addWidget(self.status_bar_label)
 
-        # 3. Кнопка «Запрос данных»
-        self.query_button = QPushButton("Запрос данных")
+        # 3. ИСПРАВЛЕНО: Создаем горизонтальный ряд кнопок управления
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(8)
+
+        # Создаем кнопку «Сохранить запрос»
+        self.save_pattern_button = QPushButton("Сохранить запрос")
+        self.save_pattern_button.setFixedHeight(30)
+        self.save_pattern_button.setStyleSheet("font-weight: bold; background-color: #28A745; color: white; border: 1px solid #218838; border-radius: 3px;")
+        self.save_pattern_button.clicked.connect(self.save_pattern_requested.emit)
+        buttons_layout.addWidget(self.save_pattern_button, stretch=1)
+
+        # Переименовываем и настраиваем кнопку «Послать запрос»
+        self.query_button = QPushButton("Послать запрос")
         self.query_button.setFixedHeight(30)
-        self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white;")
+        self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white; border: 1px solid #004085; border-radius: 3px;")
         self.query_button.clicked.connect(self.query_requested.emit)
-        inner_layout.addWidget(self.query_button)
+        buttons_layout.addWidget(self.query_button, stretch=1)
+
+        inner_layout.addLayout(buttons_layout)
 
     def _build_rows(self, identifiers_map: dict):
         row = 1
@@ -110,13 +125,16 @@ class IdsPanelView(QWidget):
 
     def set_interactive_state(self, enabled: bool):
         self.query_button.setEnabled(enabled)
+        self.save_pattern_button.setEnabled(enabled)
         for cb in self.ids_checkboxes.values():
             cb.setEnabled(enabled)
 
         if enabled:
-            self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white;")
+            self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white; border: 1px solid #004085; border-radius: 3px;")
+            self.save_pattern_button.setStyleSheet("font-weight: bold; background-color: #28A745; color: white; border: 1px solid #218838; border-radius: 3px;")
         else:
-            self.query_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0;")
+            self.query_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0; border: 1px solid #808080; border-radius: 3px;")
+            self.save_pattern_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0; border: 1px solid #808080; border-radius: 3px;")
 
     def set_session_status(self, text: str, color_hex: str = "#555555", font_bold: bool = False):
         self.status_bar_label.setText(text)
@@ -130,3 +148,4 @@ class IdsPanelView(QWidget):
 
     def get_selected_param_ids(self) -> list[int]:
         return [param_id for param_id, cb in self.ids_checkboxes.items() if cb.isChecked()]
+

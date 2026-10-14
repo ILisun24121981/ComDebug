@@ -63,7 +63,6 @@ class ApplicationController(QObject):
             ids_map = self.config_manager.load_ids_identifiers()
             self.main_window.show_ids_interface(ids_map)
 
-            # ИСПРАВЛЕНО: Превентивно отключаем старых слушателей от сигнала оркестратора
             try:
                 self.data_parsed_signal.disconnect()
             except TypeError:
@@ -74,6 +73,9 @@ class ApplicationController(QObject):
 
             self.data_parsed_signal.connect(self.ids_panel_controller.update_telemetry_data)
             self.ids_panel_controller.send_request_signal.connect(self.execute_ids_data_query)
+
+            # ИСПРАВЛЕНО: Подключаем обработчик сохранения шаблона из панели IDS
+            self.ids_panel_controller.save_pattern_requested_signal.connect(self.process_ids_panel_pattern_save)
 
         elif protocol_name == "Gels":
             self.gels_protocol_instance = GelsProtocol()
@@ -86,7 +88,6 @@ class ApplicationController(QObject):
         self.main_window.send_cmd_view.set_addresses_container_visible(False)
         self.main_window.send_cmd_view.set_radio_layout_visible(False)
 
-        # ИСПРАВЛЕНО: Безопасно очищаем все подписки при закрытии сессии
         try:
             self.data_parsed_signal.disconnect()
         except TypeError:
@@ -95,6 +96,7 @@ class ApplicationController(QObject):
         if self.ids_panel_controller:
             try:
                 self.ids_panel_controller.send_request_signal.disconnect(self.execute_ids_data_query)
+                self.ids_panel_controller.save_pattern_requested_signal.disconnect(self.process_ids_panel_pattern_save)
             except TypeError:
                 pass
 
@@ -108,16 +110,12 @@ class ApplicationController(QObject):
 
     @pyqtSlot(bytes)
     def handle_incoming_bytes(self, raw_bytes: bytes):
-        """Потокобезопасный слот обработки входящих байт шины КНБК."""
         if not raw_bytes:
             return
-
         active_proto = self.com_port_controller.active_protocol_name
-
         if active_proto not in ["IDS", "Gels", "Aps"]:
             self.port_logger_controller.write_log("in", raw_bytes.hex(" ").upper())
             return
-
         self.rx_buffer.extend(raw_bytes)
 
         if active_proto == "IDS" and self.ids_protocol_instance:
@@ -125,15 +123,12 @@ class ApplicationController(QObject):
                 frame = self.ids_protocol_instance.parse_stream(self.rx_buffer)
                 if frame is None:
                     break
-
                 raw_packet = frame.get("raw_packet", b"")
                 if raw_packet:
                     direction = "in" if frame.get("is_valid", False) else "err"
                     self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
-
                 if not frame.get("is_valid", False):
                     continue
-
                 payload_bytes = frame.get("payload", b"")
                 parsed_data = self.ids_protocol_instance.parse_dynamic_payload(payload_bytes)
                 if parsed_data:
@@ -144,35 +139,25 @@ class ApplicationController(QObject):
                 frame = self.gels_protocol_instance.parse_stream(self.rx_buffer)
                 if frame is None:
                     break
-
                 raw_packet = frame.get("raw_packet", b"")
                 if raw_packet:
                     direction = "in" if frame.get("is_valid", False) else "err"
                     self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
-
-                if frame.get("is_valid", False):
-                    print(f"[ApplicationController] Получен цельный пакет Gels: {frame}")
 
         elif active_proto == "Aps" and self.aps_protocol_instance:
             while True:
                 frame = self.aps_protocol_instance.parse_stream(self.rx_buffer)
                 if frame is None:
                     break
-
                 raw_packet = frame.get("raw_packet", b"")
                 if raw_packet:
                     direction = "in" if frame.get("is_valid", False) else "err"
                     self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
 
-                if frame.get("is_valid", False):
-                    print(f"[ApplicationController] Получен цельный пакет Aps: {frame}")
-
     def handle_manual_command_dispatch(self, dst_addr: int, src_addr: int, command_code: int, payload: bytes):
-        """Формирует пакет и отправляет его в физический канал связи."""
         if not self.com_port_controller.model.is_connected():
             self.main_window.com_port_view.show_error("Ошибка", "Передача невозможна: COM-порт закрыт.")
             return
-
         if self.com_port_controller.active_protocol_name == "IDS" and self.ids_protocol_instance:
             full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         elif self.com_port_controller.active_protocol_name == "Gels" and self.gels_protocol_instance:
@@ -181,12 +166,10 @@ class ApplicationController(QObject):
             full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         else:
             full_packet = struct.pack("BB", dst_addr, src_addr) + payload
-
         self.com_port_controller.model.send_data(full_packet)
         self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
 
     def process_pattern_save_request(self, command_code: int, payload: bytes):
-        """Сборка кадра и открытие модального окна сохранения шаблонов."""
         addrs = self.main_window.send_cmd_view.get_addresses_values()
         try:
             dst_addr = int(addrs["dst"], 16)
@@ -208,23 +191,54 @@ class ApplicationController(QObject):
             full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
         packet_hex_string = full_packet.hex(" ").upper()
+        save_view = SaveCmdPatternView(formatted_packet_hex=packet_hex_string, parent=self.main_window)
+        save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
+        proto_name = self.com_port_controller.active_protocol_name
+        if save_controller.execute_save(proto_name, full_packet):
+            self.send_cmd_controller.configure_for_protocol(proto_name)
 
+    # ИСПРАВЛЕНО: Новый метод формирования кодограммы 0x11 БЕЗ отправки в порт и вызова диалога сохранения
+    def process_ids_panel_pattern_save(self, selected_ids: list):
+        """Собирает бинарный пакет на основе выбранных в IdsPanelView чекбоксов и открывает окно сохранения шаблонов."""
+        if not self.ids_protocol_instance:
+            return
+
+        addrs = self.main_window.send_cmd_view.get_addresses_values()
+        try:
+            dst_addr = int(addrs["dst"], 16)
+            src_addr = int(addrs["src"], 16)
+        except ValueError:
+            dst_addr, src_addr = 0x29, 0x00
+
+        # Формируем бинарный Payload команды 0x11 (ReadData)
+        payload = bytearray()
+        payload.append(len(selected_ids))
+        for param_id in selected_ids:
+            payload.append(param_id)
+
+        command_code = 0x11
+
+        # Собираем легитимный пакет по правилам IDS SBus протокола
+        full_packet = self.ids_protocol_instance.pack_message(
+            dst_addr=dst_addr, src_addr=src_addr, cmd=command_code, payload=bytes(payload)
+        )
+        packet_hex_string = full_packet.hex(" ").upper()
+
+        # Разворачиваем модальное окно сохранения шаблонов
         save_view = SaveCmdPatternView(formatted_packet_hex=packet_hex_string, parent=self.main_window)
         save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
 
         proto_name = self.com_port_controller.active_protocol_name
         if save_controller.execute_save(proto_name, full_packet):
+            # Обновляем комбобокс в SendCmdController, чтобы новый шаблон сразу там появился
             self.send_cmd_controller.configure_for_protocol(proto_name)
 
     def execute_ids_data_query(self, selected_ids: list):
-        """Формирует кодограмму запроса 0x11 по протоколу IDS."""
         if not self.com_port_controller.model.is_connected() or not self.ids_protocol_instance:
             self.main_window.com_port_view.show_error("Ошибка", "Передача невозможна: COM-порт закрыт.")
             return
-
         if not selected_ids:
             return
-
         addrs = self.main_window.send_cmd_view.get_addresses_values()
         try:
             dst_addr = int(addrs["dst"], 16)
@@ -239,6 +253,6 @@ class ApplicationController(QObject):
 
         command_code = 0x11
         full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, bytes(payload))
-
         self.com_port_controller.model.send_data(full_packet)
         self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
+
