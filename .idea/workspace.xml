@@ -4,13 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="изменил отображение IDS Panel">
-      <change afterPath="$PROJECT_DIR$/app/controllers/ManageCmdPatternsController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/ManageCmdPatternsView.py" afterDir="false" />
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="изменил функционал добавил редактор сохраненных команд">
+      <change afterPath="$PROJECT_DIR$/app/models/LogManager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/SendCmdController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SendCmdController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/SendCmdView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/ComPortModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/ComPortModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/IdsPanelView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/PortLoggerView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/PortLoggerView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -153,7 +154,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791983102951</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="изменил функционал добавил редактор сохраненных команд">
+      <option name="closed" value="true" />
+      <created>1791985767813</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1791985767813</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -168,7 +177,8 @@
     <MESSAGE value="корректировки интрефейса" />
     <MESSAGE value="добавил сохранение запроса IDS panel" />
     <MESSAGE value="изменил отображение IDS Panel" />
-    <option name="LAST_COMMIT_MESSAGE" value="изменил отображение IDS Panel" />
+    <MESSAGE value="изменил функционал добавил редактор сохраненных команд" />
+    <option name="LAST_COMMIT_MESSAGE" value="изменил функционал добавил редактор сохраненных команд" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -14,9 +14,11 @@ except ImportError:
 class ComPortModel(QObject):
     """
     Транспортный уровень последовательного интерфейса (PyQt6 Model).
-    Генерирует нативный межпотоковый сигнал при поступлении любых байт.
+    Генерирует сигналы при поступлении байт или при возникновении аппаратных сбоев.
     """
     data_received = pyqtSignal(bytes)
+    # ИСПРАВЛЕНО: Добавлен сигнал для отправки текстового описания причины ошибки связи
+    error_occurred = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -72,7 +74,6 @@ class ComPortModel(QObject):
         return False
 
     def close_port(self) -> None:
-        """Безопасно останавливает фоновый поток вычитки шины и освобождает дескриптор порта."""
         self.is_reading = False
         if self.read_thread is not None:
             if self.read_thread.is_alive():
@@ -97,10 +98,7 @@ class ComPortModel(QObject):
         return bytes_written
 
     def _read_loop(self):
-        """
-        Бесконечный фоновый поток мгновенно бросает сигнал при появлении любых байт.
-        ИСПРАВЛЕНО: сброс флага self.is_reading при аппаратной потере USB-соединения.
-        """
+        """Бесконечный фоновый поток. ИСПРАВЛЕНО: перехват и проброс точной причины падения связи."""
         while self.is_reading:
             if self.serial_connection and self.serial_connection.is_open:
                 try:
@@ -110,8 +108,13 @@ class ComPortModel(QObject):
                             self.data_received.emit(raw_bytes)
                     else:
                         time.sleep(0.01)
-                except Exception:
-                    self.is_reading = False  # Останавливаем поток, предотвращая утечку CPU
+                except Exception as err:
+                    # Извлекаем текстовое описание системного сбоя ОС (например: "Device disconnected")
+                    error_message = str(err) if str(err) else "Физический разрыв линии или аппаратный сбой USB"
+                    self.is_reading = False
+
+                    # Генерируем сигнал с точным указанием причины для вывода в терминал логов
+                    self.error_occurred.emit(error_message)
                     break
             else:
                 break

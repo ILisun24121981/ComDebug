@@ -25,8 +25,6 @@ class IdsPanelView(QWidget):
 
         # Промышленная строго зафиксированная рамка-контейнер
         self.border_frame = QFrame()
-
-        # Настраиваем базовые стили и поведение при наведении (hover)
         self.border_frame.setStyleSheet("""
             QFrame {
                 border: 1px solid #CCCCCC;
@@ -46,11 +44,11 @@ class IdsPanelView(QWidget):
                 border: 1px solid #777777;
                 border-radius: 0px;
                 background-color: #FFFFFF;
-                padding: 1px; /* Резервируем пиксель под будущую толстую рамку */
+                padding: 1px;
             }
             QCheckBox::indicator:hover {
                 border: 2px solid #1D6477;
-                padding: 0px; /* Сохраняем общий размер неизменным */
+                padding: 0px;
             }
         """)
 
@@ -69,17 +67,16 @@ class IdsPanelView(QWidget):
         container_widget = QWidget()
         self.grid = QGridLayout(container_widget)
 
-        # Расстояние между строками параметров 4px и отступы 2px
         self.grid.setSpacing(4)
         self.grid.setContentsMargins(2, 2, 2, 2)
 
-        # Главный управляющий чекбокс шапки со светлой синей заливкой при активации
+        # Главный управляющий чекбокс шапки
         self.select_all_checkbox = QCheckBox("Выделить все")
         self.select_all_checkbox.setStyleSheet("""
             QCheckBox { color: #333333; font-weight: bold; }
             QCheckBox::indicator:checked {
                 border: 2px solid #1D6477;
-                background-color: #E6F2F7; /* Спокойный пастельно-синий фон */
+                background-color: #E6F2F7;
                 padding: 0px;
             }
         """)
@@ -107,15 +104,13 @@ class IdsPanelView(QWidget):
 
         self.save_pattern_button = QPushButton("Сохранить запрос")
         self.save_pattern_button.setFixedHeight(30)
-        self.save_pattern_button.setStyleSheet(
-            "font-weight: bold; background-color: #28A745; color: white; border: 1px solid #218838; border-radius: 3px;")
+        self.save_pattern_button.setStyleSheet("font-weight: bold; background-color: #28A745; color: white; border: 1px solid #218838; border-radius: 3px;")
         self.save_pattern_button.clicked.connect(self.save_pattern_requested.emit)
         buttons_layout.addWidget(self.save_pattern_button, stretch=1)
 
         self.query_button = QPushButton("Послать запрос")
         self.query_button.setFixedHeight(30)
-        self.query_button.setStyleSheet(
-            "font-weight: bold; background-color: #0056b3; color: white; border: 1px solid #004085; border-radius: 3px;")
+        self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white; border: 1px solid #004085; border-radius: 3px;")
         self.query_button.clicked.connect(self.query_requested.emit)
         buttons_layout.addWidget(self.query_button, stretch=1)
 
@@ -127,9 +122,6 @@ class IdsPanelView(QWidget):
             param_name = meta["name"] if isinstance(meta, dict) else str(meta)
 
             cb = QCheckBox(f"{param_name} (0x{param_id:02X})")
-
-            # ИСПРАВЛЕНО: Для отмеченных чекбоксов установлена жирная рамка #1D6477 внутрь элемента
-            # и добавлена мягкая синяя заливка #E6F2F7, полностью гармонирующая с верхним пультом
             cb.setStyleSheet("""
                 QCheckBox { color: #000000; font-weight: normal; padding-top: 1px; padding-bottom: 1px; }
                 QCheckBox::indicator:checked {
@@ -170,15 +162,11 @@ class IdsPanelView(QWidget):
             cb.setEnabled(enabled)
 
         if enabled:
-            self.query_button.setStyleSheet(
-                "font-weight: bold; background-color: #0056b3; color: white; border: 1px solid #004085; border-radius: 3px;")
-            self.save_pattern_button.setStyleSheet(
-                "font-weight: bold; background-color: #28A745; color: white; border: 1px solid #218838; border-radius: 3px;")
+            self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white; border: 1px solid #004085; border-radius: 3px;")
+            self.save_pattern_button.setStyleSheet("font-weight: bold; background-color: #28A745; color: white; border: 1px solid #218838; border-radius: 3px;")
         else:
-            self.query_button.setStyleSheet(
-                "font-weight: bold; background-color: #A0A0A0; color: #E0E0E0; border: 1px solid #808080; border-radius: 3px;")
-            self.save_pattern_button.setStyleSheet(
-                "font-weight: bold; background-color: #A0A0A0; color: #E0E0E0; border: 1px solid #808080; border-radius: 3px;")
+            self.query_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0; border: 1px solid #808080; border-radius: 3px;")
+            self.save_pattern_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0; border: 1px solid #808080; border-radius: 3px;")
 
     def set_session_status(self, text: str, color_hex: str = "#555555", font_bold: bool = False):
         self.status_bar_label.setText(text)

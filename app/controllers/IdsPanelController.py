@@ -1,12 +1,13 @@
 import random
 from typing import List, Dict, Any
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 
 class IdsPanelController(QObject):
     """
     Контроллер для комплексной панели управления IDS (MVC).
-    ПОЛНОСТЬЮ ЗАЩИЩЕН ОТ КРЭША (0xC0000409): исправлен срез строки до .strip().
+    ПОЛНОСТЬЮ ЗАЩИЩЕН ОТ КРЭША (0xC0000409): исправлено извлечение имени параметра КНБК.
+    Интерфейс всегда остается активным для отправки частых запросов.
     """
     request_changed = pyqtSignal(int, bool)
     send_request_signal = pyqtSignal(list)
@@ -15,18 +16,11 @@ class IdsPanelController(QObject):
     def __init__(self, view):
         super().__init__()
         self.view = view
-
-        self.is_transaction_active = False
         self.last_used_color = "#CCCCCC"
 
         self.industrial_colors = [
-            "#41739D",  # Насыщенный сине-стальной
-            "#4F9A68",  # Четкий изумрудно-зеленый
-            "#D3833A",  # Теплый янтарно-оранжевый
-            "#845AA6",  # Выразительный фиолетовый
-            "#3297A6",  # Контрастный бирюзовый
-            "#C25B5B",  # Приглушенный кораллово-красный
-            "#A18262"  # Благородный темно-бежевый / бронзовый
+            "#41739D", "#4F9A68", "#D3833A", "#845AA6",
+            "#3297A6", "#C25B5B", "#A18262"
         ]
 
         self.view.query_requested.connect(self.handle_query_execution)
@@ -37,18 +31,17 @@ class IdsPanelController(QObject):
         self.request_changed.emit(param_id, is_checked)
 
     def handle_query_execution(self):
-        """Событие: Нажата кнопка 'Послать запрос'. Безопасный транзакционный цикл опроса."""
+        """Событие: Нажата кнопка 'Послать запрос'."""
         active_ids = self.view.get_selected_param_ids()
 
         if not active_ids:
             self.view.set_session_status("Предупреждение: выберите параметры КНБК!", "#D9534F", font_bold=True)
             return
 
-        self.is_transaction_active = True
-
         for param_id, cb in self.view.ids_checkboxes.items():
             cb_text = cb.text()
             if " (0x" in cb_text:
+                # ИСПРАВЛЕНО БЕЗОПАСНО: Берем строго [0] элемент после сплита и только затем вызываем .strip()
                 param_name = cb_text.split(" (0x")[0].strip()
                 if cb.isChecked():
                     self.view.update_value(param_name, "...")
@@ -56,36 +49,26 @@ class IdsPanelController(QObject):
                     current_text = self.view.ids_value_labels.get(param_name).text()
                     self.view.update_value(param_name, current_text)
 
-        self.view.set_interactive_state(False)
         self.view.set_session_status("Опрос прибора активен, ожидание ответа...", "#0056B3", font_bold=False)
 
-        QTimer.singleShot(1500, self._handle_transaction_timeout)
+        # Передаем управление в центральный оркестратор
         self.send_request_signal.emit(active_ids)
+
     def handle_pattern_save_execution(self):
         """Событие: Нажата кнопка 'Сохранить запрос'."""
         active_ids = self.view.get_selected_param_ids()
-
         if not active_ids:
-            self.view.set_session_status("Предупреждение: выберите параметры для сохранения!", "#D9534F", font_bold=True)
+            self.view.set_session_status("Предупреждение: выберите параметры для сохранения!", "#D9534F",
+                                         font_bold=True)
             return
-
         self.save_pattern_requested_signal.emit(active_ids)
-
-    def _handle_transaction_timeout(self):
-        if self.is_transaction_active:
-            self.is_transaction_active = False
-            self.view.set_interactive_state(True)
-            self.view.set_session_status("Предупреждение: таймаут ответа КНБК шины", "#D9534F", font_bold=True)
 
     @pyqtSlot(dict)
     def update_telemetry_data(self, parsed_data: dict):
-        """Слот: Принимает бинарный ответ от КНБК, пишет физические величины и красит рамки."""
+        """Слот: Принимает бинарный ответ от КНБК, пишет физические величины."""
         if not parsed_data:
             return
 
-        self.is_transaction_active = False
-
-        # Выбираем новый цвет, гарантированно отличающийся от прошлого пакета
         available_colors = [c for c in self.industrial_colors if c != self.last_used_color]
         current_packet_color = random.choice(available_colors)
         self.last_used_color = current_packet_color
@@ -100,7 +83,6 @@ class IdsPanelController(QObject):
             else:
                 display_str = str(val_to_display)
 
-            # Передаем обновленные значения и выбранный контрастный цвет рамки в GUI-виджет
             self.view.update_value_with_border(param_name.strip(), display_str, current_packet_color)
 
         self.view.set_interactive_state(True)
