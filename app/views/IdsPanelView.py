@@ -25,14 +25,32 @@ class IdsPanelView(QWidget):
 
         # Промышленная строго зафиксированная рамка-контейнер
         self.border_frame = QFrame()
+
+        # Настраиваем базовые стили и поведение при наведении (hover)
         self.border_frame.setStyleSheet("""
             QFrame {
                 border: 1px solid #CCCCCC;
                 border-radius: 3px;
                 background-color: #FAFAFA;
             }
-            QLabel, QCheckBox, QScrollArea, QPushButton {
+            QLabel, QScrollArea, QPushButton {
                 background-color: transparent;
+            }
+            QCheckBox {
+                background-color: transparent;
+                color: #000000;
+            }
+            QCheckBox::indicator {
+                width: 12px;
+                height: 12px;
+                border: 1px solid #777777;
+                border-radius: 0px;
+                background-color: #FFFFFF;
+                padding: 1px; /* Резервируем пиксель под будущую толстую рамку */
+            }
+            QCheckBox::indicator:hover {
+                border: 2px solid #1D6477;
+                padding: 0px; /* Сохраняем общий размер неизменным */
             }
         """)
 
@@ -51,16 +69,19 @@ class IdsPanelView(QWidget):
         container_widget = QWidget()
         self.grid = QGridLayout(container_widget)
 
-        # ИСПРАВЛЕНО: Уменьшено расстояние между строками параметров до 4px и отступы до 2px
+        # Расстояние между строками параметров 4px и отступы 2px
         self.grid.setSpacing(4)
         self.grid.setContentsMargins(2, 2, 2, 2)
 
-        # Шапка таблицы параметров КНБК
+        # Главный управляющий чекбокс шапки со светлой синей заливкой при активации
         self.select_all_checkbox = QCheckBox("Выделить все")
         self.select_all_checkbox.setStyleSheet("""
             QCheckBox { color: #333333; font-weight: bold; }
-            QCheckBox::indicator { border: 1px solid #333333; width: 13px; height: 13px; }
-            QCheckBox::indicator:checked { background-color: #333333; border-color: #333333; }
+            QCheckBox::indicator:checked {
+                border: 2px solid #1D6477;
+                background-color: #E6F2F7; /* Спокойный пастельно-синий фон */
+                padding: 0px;
+            }
         """)
         self.select_all_checkbox.clicked.connect(self._handle_select_all_clicked)
         self.grid.addWidget(self.select_all_checkbox, 0, 0)
@@ -106,10 +127,16 @@ class IdsPanelView(QWidget):
             param_name = meta["name"] if isinstance(meta, dict) else str(meta)
 
             cb = QCheckBox(f"{param_name} (0x{param_id:02X})")
+
+            # ИСПРАВЛЕНО: Для отмеченных чекбоксов установлена жирная рамка #1D6477 внутрь элемента
+            # и добавлена мягкая синяя заливка #E6F2F7, полностью гармонирующая с верхним пультом
             cb.setStyleSheet("""
                 QCheckBox { color: #000000; font-weight: normal; padding-top: 1px; padding-bottom: 1px; }
-                QCheckBox::indicator { border: 1px solid #666666; width: 13px; height: 13px; }
-                QCheckBox::indicator:checked { background-color: #0056b3; border-color: #0056b3; }
+                QCheckBox::indicator:checked {
+                    border: 2px solid #1D6477;
+                    background-color: #E6F2F7;
+                    padding: 0px;
+                }
             """)
             cb.clicked.connect(lambda checked, p_id=param_id: self.param_toggled.emit(p_id, checked))
             self.grid.addWidget(cb, row, 0)
@@ -118,8 +145,6 @@ class IdsPanelView(QWidget):
             val_label = QLabel("—")
             val_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             val_label.setFixedWidth(90)
-
-            # ИСПРАВЛЕНО: Высота полей уменьшена с 22px до 18px для плотной вертикальной компоновки
             val_label.setFixedHeight(18)
             val_label.setStyleSheet(
                 "background-color: #FFFFFF; border: 1px solid #CCCCCC; "

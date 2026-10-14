@@ -28,34 +28,40 @@ class SendCmdView(QWidget):
         # Промышленная строго зафиксированная рамка-контейнер
         self.border_frame = QFrame()
 
-        # ИСПРАВЛЕНО: Из правила прозрачности убран QRadioButton и добавлен
-        # строгий промышленный стиль для его круглого индикатора-точки
+        # ИСПРАВЛЕНО: Из QSS полностью удалены любые правила стилизации QRadioButton.
+        # Теперь радиокнопки используют чистый, эталонный системный стиль операционной системы:
+        # их внешний вид статичен, текст не пропадает, меняется только внутренний кругляшок.
         self.border_frame.setStyleSheet("""
             QFrame {
                 border: 1px solid #CCCCCC;
                 border-radius: 3px;
                 background-color: #FAFAFA;
             }
-            QLabel, QComboBox, QLineEdit, QPushButton {
+            QLabel {
+                border: none;
                 background-color: transparent;
+                color: #333333;
             }
-            QRadioButton {
-                background-color: transparent;
-                color: #000000;
-            }
-            QRadioButton::indicator {
-                width: 12px;
-                height: 12px;
-                border: 1px solid #666666;
-                border-radius: 6px;
+            QLineEdit, QComboBox {
+                border: 1px solid #B0B0B0;
+                border-radius: 2px;
                 background-color: #FFFFFF;
+                color: #000000;
+                padding-left: 3px;
             }
-            QRadioButton::indicator:checked {
-                border: 1px solid #0056b3;
-                background-color: #0056b3;
+            QPushButton {
+                border: 1px solid #999999;
+                border-radius: 2px;
+                background-color: #EAEAEA;
+                color: #222222;
             }
-            QRadioButton::indicator:hover {
-                border-color: #0056b3;
+            QPushButton:hover {
+                border-color: #666666;
+                background-color: #DFDFDF;
+            }
+            QPushButton:pressed {
+                border-color: #444444;
+                background-color: #D5D5D5;
             }
         """)
 
@@ -80,6 +86,8 @@ class SendCmdView(QWidget):
         self.radio_saved = QRadioButton("Сохраненная")
         self.radio_new = QRadioButton("Новая")
 
+        # ИСПРАВЛЕНО: Убраны локальные костыльные переопределения styles для кнопок,
+        # давая им работать на нативных вызовах C++ библиотек Qt
         self.radio_saved.toggled.connect(lambda checked: self.mode_changed.emit(True) if checked else None)
         self.radio_new.toggled.connect(lambda checked: self.mode_changed.emit(False) if checked else None)
 
@@ -207,7 +215,6 @@ class SendCmdView(QWidget):
         self._recalculate_total_height()
 
     def _recalculate_total_height(self):
-        """Внутренний метод: динамически пересчитывает жесткую высоту панели."""
         base_h = 74
         if self.radio_container.isVisible():
             base_h += 24
@@ -264,4 +271,3 @@ class SendCmdView(QWidget):
     def show_error(self, title: str, message: str):
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.critical(self, title, message)
-
