@@ -50,6 +50,8 @@ class MainWindow(QMainWindow):
         self.pattern_cmd_placeholder.setMinimumHeight(55)
         self.command_generators_layout.addWidget(self.pattern_cmd_placeholder)
 
+        self.command_generators_layout.addStretch()
+
         # Подключаем весь горизонтальный ряд команд в главный вертикальный слой окна
         self.main_layout.addLayout(self.command_generators_layout)
 

@@ -1,5 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QScrollArea, QPushButton, \
-    QLineEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QScrollArea, QPushButton, QLineEdit, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
@@ -17,10 +16,30 @@ class IdsPanelView(QWidget):
         self.ids_checkboxes = {}  # {param_id: QCheckBox}
         self.ids_value_labels = {}  # {param_name: QLabel}
 
-        # Корневой вертикальный слой панели IDS
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(10)
+        # Корневой слой всей панели — строго вертикальный
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        # Промышленная строго зафиксированная рамка-контейнер
+        self.border_frame = QFrame()
+        self.border_frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #CCCCCC;
+                border-radius: 3px;
+                background-color: #FAFAFA;
+            }
+            QLabel, QCheckBox, QScrollArea, QPushButton {
+                background-color: transparent;
+            }
+        """)
+
+        # Внутренний слой для размещения забойной таблицы параметров
+        inner_layout = QVBoxLayout(self.border_frame)
+        inner_layout.setContentsMargins(10, 10, 10, 10)
+        inner_layout.setSpacing(10)
+
+        self.main_layout.addWidget(self.border_frame)
 
         # 1. Область прокрутки параметров
         self.scroll_area = QScrollArea()
@@ -45,25 +64,24 @@ class IdsPanelView(QWidget):
         self._build_rows(identifiers_map)
 
         self.scroll_area.setWidget(container_widget)
-        main_layout.addWidget(self.scroll_area, stretch=1)
+        inner_layout.addWidget(self.scroll_area, stretch=1)
 
-        # 2. Новая строка: Текстовый статус-бар сессии опроса
+        # 2. Текстовый статус-бар сессии опроса
         self.status_bar_label = QLabel("Система готова к опросу")
         self.status_bar_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.status_bar_label.setStyleSheet("color: #555555; font-style: italic; font-size: 11px; padding-left: 2px;")
-        main_layout.addWidget(self.status_bar_label)
+        inner_layout.addWidget(self.status_bar_label)
 
         # 3. Кнопка «Запрос данных»
         self.query_button = QPushButton("Запрос данных")
         self.query_button.setFixedHeight(30)
         self.query_button.setStyleSheet("font-weight: bold; background-color: #0056b3; color: white;")
         self.query_button.clicked.connect(self.query_requested.emit)
-        main_layout.addWidget(self.query_button)
+        inner_layout.addWidget(self.query_button)
 
     def _build_rows(self, identifiers_map: dict):
         row = 1
         for param_id, meta in identifiers_map.items():
-            # ИСПРАВЛЕНО: Безопасно вытягиваем строку имени из вложенного словаря метаданных
             param_name = meta["name"] if isinstance(meta, dict) else str(meta)
 
             cb = QCheckBox(f"{param_name} (0x{param_id:02X})")
@@ -90,9 +108,7 @@ class IdsPanelView(QWidget):
 
         self.grid.setRowStretch(row, 1)
 
-    # --- Публичные методы API для управления интерфейсом из Контроллера ---
     def set_interactive_state(self, enabled: bool):
-        """Блокирует или разблокирует чекбоксы и кнопку опроса для защиты транзакции."""
         self.query_button.setEnabled(enabled)
         for cb in self.ids_checkboxes.values():
             cb.setEnabled(enabled)
@@ -103,7 +119,6 @@ class IdsPanelView(QWidget):
             self.query_button.setStyleSheet("font-weight: bold; background-color: #A0A0A0; color: #E0E0E0;")
 
     def set_session_status(self, text: str, color_hex: str = "#555555", font_bold: bool = False):
-        """Обновляет text и цвет статус-бара панели."""
         self.status_bar_label.setText(text)
         weight = "bold" if font_bold else "normal"
         self.status_bar_label.setStyleSheet(

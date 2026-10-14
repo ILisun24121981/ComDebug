@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QRadioButton, QComboBox, \
-    QStackedWidget
+    QStackedWidget, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
@@ -23,10 +23,51 @@ class SendCmdView(QWidget):
         # Корневой слой всей панели — строго вертикальный
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(6)
+        self.main_layout.setSpacing(0)
 
-        # Базовая высота без строки радиокнопок и адресов (дефолтное состояние до подключения)
-        self.setFixedHeight(54)
+        # Промышленная строго зафиксированная рамка-контейнер
+        self.border_frame = QFrame()
+
+        # ИСПРАВЛЕНО: Из правила прозрачности убран QRadioButton и добавлен
+        # строгий промышленный стиль для его круглого индикатора-точки
+        self.border_frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #CCCCCC;
+                border-radius: 3px;
+                background-color: #FAFAFA;
+            }
+            QLabel, QComboBox, QLineEdit, QPushButton {
+                background-color: transparent;
+            }
+            QRadioButton {
+                background-color: transparent;
+                color: #000000;
+            }
+            QRadioButton::indicator {
+                width: 12px;
+                height: 12px;
+                border: 1px solid #666666;
+                border-radius: 6px;
+                background-color: #FFFFFF;
+            }
+            QRadioButton::indicator:checked {
+                border: 1px solid #0056b3;
+                background-color: #0056b3;
+            }
+            QRadioButton::indicator:hover {
+                border-color: #0056b3;
+            }
+        """)
+
+        # Внутренний рабочий слой для элементов управления
+        self.inner_layout = QVBoxLayout(self.border_frame)
+        self.inner_layout.setContentsMargins(10, 10, 10, 10)
+        self.inner_layout.setSpacing(6)
+
+        self.main_layout.addWidget(self.border_frame)
+
+        # Базовая высота с учетом добавленной промышленной рамки и внутренних отступов
+        self.setFixedHeight(74)
 
         # 1. КОНТЕЙНЕР РАДИОКНОПОК (По умолчанию скрыт)
         self.radio_container = QWidget()
@@ -47,7 +88,7 @@ class SendCmdView(QWidget):
         radio_inner_layout.addStretch()
 
         self.radio_container.setVisible(False)
-        self.main_layout.addWidget(self.radio_container)
+        self.inner_layout.addWidget(self.radio_container)
 
         # 2. РЯД УПРАВЛЕНИЯ И ОТПРАВКИ КОМАНД (Виден всегда)
         self.send_cmd_layout = QHBoxLayout()
@@ -78,7 +119,7 @@ class SendCmdView(QWidget):
         self.send_cmd_layout.addWidget(self.save_button)
 
         self.send_cmd_layout.addStretch()
-        self.main_layout.addLayout(self.send_cmd_layout)
+        self.inner_layout.addLayout(self.send_cmd_layout)
 
         # 3. КОНТЕЙНЕР АДРЕСАЦИИ ШИНЫ (Динамически перестраиваемый под протоколы IDS/Gels)
         self.addresses_container = QWidget()
@@ -102,7 +143,7 @@ class SendCmdView(QWidget):
         addresses_inner_layout.addStretch()
 
         self.addresses_container.setVisible(False)
-        self.main_layout.addWidget(self.addresses_container)
+        self.inner_layout.addWidget(self.addresses_container)
 
         # 4. РЯД ПОЛЕЗНОЙ НАГРУЗКИ PAYLOAD (Виден всегда)
         self.payload_layout = QHBoxLayout()
@@ -136,15 +177,16 @@ class SendCmdView(QWidget):
         self.payload_layout.addWidget(self.payload_edit_button)
 
         self.payload_layout.addStretch()
-        self.main_layout.addLayout(self.payload_layout)
+        self.inner_layout.addLayout(self.payload_layout)
+
+        # Вертикальный поджим к верху рамки
+        self.inner_layout.addStretch()
 
         # Принудительный стартовый сброс
         self.radio_new.setChecked(True)
         self.set_view_mode(False)
 
-    # --- Публичное API динамического изменения интерфейса под выбранный протокол ---
     def update_addresses_labels(self, protocol_name: str):
-        """Меняет текст текстовых меток и дефолты в зависимости от выбранного стандарта связи КНБК."""
         if protocol_name == "Gels":
             self.dst_label.setText("Адрес Устройства (HEX):")
             self.dst_input.setText("01")
@@ -157,18 +199,16 @@ class SendCmdView(QWidget):
             self.src_input.setText("00")
 
     def set_addresses_container_visible(self, visible: bool):
-        """Управляет отображением полей адресации получателя/отправителя КНБК."""
         self.addresses_container.setVisible(visible)
         self._recalculate_total_height()
 
     def set_radio_layout_visible(self, visible: bool):
-        """Управляет отображением всего ряда радиокнопок."""
         self.radio_container.setVisible(visible)
         self._recalculate_total_height()
 
     def _recalculate_total_height(self):
-        """Внутренний метод: динамически пересчитывает жесткую высоту панели для исключения прыжков."""
-        base_h = 54
+        """Внутренний метод: динамически пересчитывает жесткую высоту панели."""
+        base_h = 74
         if self.radio_container.isVisible():
             base_h += 24
         if self.addresses_container.isVisible():
@@ -176,30 +216,26 @@ class SendCmdView(QWidget):
         self.setFixedHeight(base_h)
 
     def set_view_mode(self, is_saved_mode: bool):
-        """Бесшовно переключает слои через QStackedWidget без прыжков по высоте."""
         if is_saved_mode:
-            self.cmd_stack.setCurrentIndex(1)  # Включаем QComboBox
-            self.bottom_left_stack.setCurrentIndex(1)  # Включаем QLabel номера команды
+            self.cmd_stack.setCurrentIndex(1)
+            self.bottom_left_stack.setCurrentIndex(1)
             self.save_button.setVisible(False)
         else:
-            self.cmd_stack.setCurrentIndex(0)  # Включаем QLineEdit
-            self.bottom_left_stack.setCurrentIndex(0)  # Включаем QPushButton Payload
+            self.cmd_stack.setCurrentIndex(0)
+            self.bottom_left_stack.setCurrentIndex(0)
             self.save_button.setVisible(True)
             self.info_cmd_label.setText("")
 
     def populate_patterns(self, pattern_names: list[str]):
-        """Заполняет комбобокс названиями шаблонов команд."""
         self.pattern_combobox.blockSignals(True)
         self.pattern_combobox.clear()
         self.pattern_combobox.addItems(pattern_names)
         self.pattern_combobox.blockSignals(False)
 
     def set_info_cmd_text(self, cmd_hex: str):
-        """Выводит номер команды на нижнюю панель в режиме работы с шаблонами."""
         self.info_cmd_label.setText(f"Команда: 0x{cmd_hex.upper()} |")
 
     def show_save_button(self, visible: bool):
-        """Включает видимость кнопки Сохранить при редактировании шаблона."""
         self.save_button.setVisible(visible)
 
     def update_payload_status(self, bytes_count: int):
@@ -222,10 +258,10 @@ class SendCmdView(QWidget):
         }
 
     def set_addresses_values(self, dst_hex: str, src_hex: str):
-        """ИСПРАВЛЕНО: Публичное API для принудительного заполнения полей адресации из контроллера."""
         self.dst_input.setText(dst_hex.upper())
         self.src_input.setText(src_hex.upper())
 
     def show_error(self, title: str, message: str):
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.critical(self, title, message)
+

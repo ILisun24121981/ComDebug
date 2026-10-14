@@ -4,12 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Стабильно вроде">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Исправил проблеммы с сигналами и ком портом">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Config/IDS_ID.json" beforeDir="false" afterPath="$PROJECT_DIR$/Config/IDS_ID.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/ComPortModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/ComPortModel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/IdsPanelView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/PortLoggerView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/PortLoggerView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/SendCmdView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -112,7 +112,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791901715182</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Исправил проблеммы с сигналами и ком портом">
+      <option name="closed" value="true" />
+      <created>1791973926831</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1791973926832</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -123,7 +131,8 @@
     <MESSAGE value="Стабильно" />
     <MESSAGE value="Добавил шаблоны команд" />
     <MESSAGE value="Стабильно вроде" />
-    <option name="LAST_COMMIT_MESSAGE" value="Стабильно вроде" />
+    <MESSAGE value="Исправил проблеммы с сигналами и ком портом" />
+    <option name="LAST_COMMIT_MESSAGE" value="Исправил проблеммы с сигналами и ком портом" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
