@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="корректировки интрефейса">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="добавил сохранение запроса IDS panel">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/views/IdsPanelView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -124,7 +126,15 @@
       <option name="project" value="LOCAL" />
       <updated>1791976966455</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="добавил сохранение запроса IDS panel">
+      <option name="closed" value="true" />
+      <created>1791977522223</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1791977522223</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -137,7 +147,8 @@
     <MESSAGE value="Стабильно вроде" />
     <MESSAGE value="Исправил проблеммы с сигналами и ком портом" />
     <MESSAGE value="корректировки интрефейса" />
-    <option name="LAST_COMMIT_MESSAGE" value="корректировки интрефейса" />
+    <MESSAGE value="добавил сохранение запроса IDS panel" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавил сохранение запроса IDS panel" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
