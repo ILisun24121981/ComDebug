@@ -14,9 +14,8 @@ except ImportError:
 class ComPortModel(QObject):
     """
     Транспортный уровень последовательного интерфейса (PyQt6 Model).
-    Генерирует нативный межпотоковый сигнал при поступлении любых байт (включая мусор).
+    Генерирует нативный межпотоковый сигнал при поступлении любых байт.
     """
-    # Сигнал передает сырые бинарные байты мгновенно в момент вычитки
     data_received = pyqtSignal(bytes)
 
     def __init__(self):
@@ -27,7 +26,6 @@ class ComPortModel(QObject):
 
     @staticmethod
     def get_available_ports() -> list[str]:
-        """Сканирует операционную систему и возвращает список доступных физических COM-портов."""
         if SERIAL_AVAILABLE:
             ports = serial.tools.list_ports.comports()
             return [port.device for port in ports]
@@ -36,7 +34,6 @@ class ComPortModel(QObject):
     def open_port(self, port_name: str, baud_rate: int = 9600, timeout_sec: float = 0.5,
                   bytesize: int = 8, parity: str = "None", stopbits: float = 1.0,
                   flow_control: str = "None") -> bool:
-        """Открывает реальный COM-порт с низкоуровневыми настройками, считанными из JSON."""
         self.close_port()
         if not port_name:
             raise ValueError("Имя порта не задано.")
@@ -73,6 +70,7 @@ class ComPortModel(QObject):
             self.read_thread.start()
             return True
         return False
+
     def close_port(self) -> None:
         """Безопасно останавливает фоновый поток вычитки шины и освобождает дескриптор порта."""
         self.is_reading = False
@@ -87,11 +85,9 @@ class ComPortModel(QObject):
             self.serial_connection = None
 
     def is_connected(self) -> bool:
-        """Возвращает текущий статус соединения."""
         return self.serial_connection is not None and self.serial_connection.is_open
 
     def send_data(self, data: Union[bytes, bytearray, str]) -> int:
-        """Отправляет бинарный массив байт в открытый последовательный порт."""
         if not self.is_connected():
             raise RuntimeError("Физический порт закрыт. Отправка невозможна.")
 
@@ -101,19 +97,21 @@ class ComPortModel(QObject):
         return bytes_written
 
     def _read_loop(self):
-        """Бесконечный фоновый поток мгновенно бросает сигнал при появлении любых байт."""
+        """
+        Бесконечный фоновый поток мгновенно бросает сигнал при появлении любых байт.
+        ИСПРАВЛЕНО: сброс флага self.is_reading при аппаратной потере USB-соединения.
+        """
         while self.is_reading:
             if self.serial_connection and self.serial_connection.is_open:
                 try:
                     if self.serial_connection.in_waiting > 0:
                         raw_bytes = self.serial_connection.read(self.serial_connection.in_waiting)
                         if raw_bytes:
-                            # Мгновенно генерируем Qt-сигнал.
-                            # Слой C++ Qt сам перенаправит вызов в главный GUI поток.
                             self.data_received.emit(raw_bytes)
                     else:
                         time.sleep(0.01)
                 except Exception:
+                    self.is_reading = False  # Останавливаем поток, предотвращая утечку CPU
                     break
             else:
                 break

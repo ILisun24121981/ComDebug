@@ -11,6 +11,7 @@
     "0x09": { "name": "GRD", "type":"uint8","description": "Гамма низ" },
     "0x0A": { "name": "GRL", "type":"uint8","description": "Гамма лево" },
     "0x0B": { "name": "GRA", "type":"uint8","description": "Гамма интегральная / усредненная" },
-    "0xF0": { "name": "STATUS", "type":"uint32","description": "Битовые поля статусов прибора" }
+    "0xF0": { "name": "STATUS", "type":"uint32","description": "Битовые поля статусов прибора" },
+    "0x0C": { "name": "Empty", "type":"uint8","description": "Гамма интегральная / усредненная" }
   }
 }

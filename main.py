@@ -5,7 +5,6 @@ from app.models.ConfigManager import ConfigManager
 from app.views.MainWindow import MainWindow
 from app.controllers.ApplicationController import ApplicationController
 
-
 def ensure_config_environment():
     """Гарантирует физическое наличие структуры папок конфигураций."""
     cfg_dir = pathlib.Path("./Config")
