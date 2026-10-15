@@ -71,9 +71,9 @@ class SendCmdView(QWidget):
         # Базовая высота с учетом добавленной промышленной рамки и внутренних отступов
         self.setFixedHeight(74)
 
-        # 1. КОНТЕЙНЕР РАДИОКНОПОК (По умолчанию скрыт)
+        # 1. КОНТЕЙНЕР РАДИОКНОПОК И УПРАВЛЯЮЩИХ КНОПОК ШАБЛОНОВ
         self.radio_container = QWidget()
-        self.radio_container.setFixedHeight(18)
+        self.radio_container.setFixedHeight(24)
         radio_inner_layout = QHBoxLayout(self.radio_container)
         radio_inner_layout.setContentsMargins(0, 0, 0, 0)
         radio_inner_layout.setSpacing(12)
@@ -89,10 +89,20 @@ class SendCmdView(QWidget):
         radio_inner_layout.addWidget(self.radio_new)
         radio_inner_layout.addStretch()
 
+        self.edit_patterns_button = QPushButton("Редактировать")
+        self.edit_patterns_button.setFixedSize(105, 22)
+        self.edit_patterns_button.clicked.connect(self.edit_patterns_clicked.emit)
+        radio_inner_layout.addWidget(self.edit_patterns_button)
+
+        self.save_button = QPushButton("Сохранить")
+        self.save_button.setFixedSize(105, 22)
+        self.save_button.clicked.connect(self.save_clicked.emit)
+        radio_inner_layout.addWidget(self.save_button)
+
         self.radio_container.setVisible(False)
         self.inner_layout.addWidget(self.radio_container)
 
-        # 2. РЯД УПРАВЛЕНИЯ И ОТПРАВКИ КОМАНД (Виден всегда)
+        # 2. РЯД УПРАВЛЕНИЯ И ОТПРАВКИ КОМАНД (send_cmd_layout)
         self.send_cmd_layout = QHBoxLayout()
         self.send_cmd_layout.setSpacing(8)
         self.send_cmd_layout.addWidget(QLabel("Команда (HEX):"))
@@ -115,46 +125,9 @@ class SendCmdView(QWidget):
         self.send_button.clicked.connect(self.send_clicked.emit)
         self.send_cmd_layout.addWidget(self.send_button)
 
-        # ИСПРАВЛЕНО: Кнопка «Редактировать» зафиксирована на длине 105 пикселей
-        self.edit_patterns_button = QPushButton("Редактировать")
-        self.edit_patterns_button.setFixedSize(105, 24)
-        self.edit_patterns_button.clicked.connect(self.edit_patterns_clicked.emit)
-        self.send_cmd_layout.addWidget(self.edit_patterns_button)
-
-        # ИСПРАВЛЕНО: Кнопка «Сохранить» приведена к той же длине 105 пикселей для исключения прыжков геометрии
-        self.save_button = QPushButton("Сохранить")
-        self.save_button.setFixedSize(105, 24)
-        self.save_button.clicked.connect(self.save_clicked.emit)
-        self.send_cmd_layout.addWidget(self.save_button)
-
         self.send_cmd_layout.addStretch()
         self.inner_layout.addLayout(self.send_cmd_layout)
-
-        # 3. КОНТЕЙНЕР АДРЕСАЦИИ ШИНЫ (Динамически перестраиваемый под протоколы IDS/Gels)
-        self.addresses_container = QWidget()
-        self.addresses_container.setFixedHeight(24)
-        addresses_inner_layout = QHBoxLayout(self.addresses_container)
-        addresses_inner_layout.setContentsMargins(0, 0, 0, 0)
-        addresses_inner_layout.setSpacing(8)
-
-        self.dst_label = QLabel("Адрес Получателя (HEX):")
-        self.dst_input = QLineEdit()
-        self.dst_input.setFixedWidth(60)
-
-        self.src_label = QLabel("Адрес Отправителя (HEX):")
-        self.src_input = QLineEdit()
-        self.src_input.setFixedWidth(60)
-
-        addresses_inner_layout.addWidget(self.dst_label)
-        addresses_inner_layout.addWidget(self.dst_input)
-        addresses_inner_layout.addWidget(self.src_label)
-        addresses_inner_layout.addWidget(self.src_input)
-        addresses_inner_layout.addStretch()
-
-        self.addresses_container.setVisible(False)
-        self.inner_layout.addWidget(self.addresses_container)
-
-        # 4. РЯД ПОЛЕЗНОЙ НАГРУЗКИ PAYLOAD (Виден всегда)
+        # 3. РЯД ПОЛЕЗНОЙ НАГРУЗКИ (payload_layout)
         self.payload_layout = QHBoxLayout()
         self.payload_layout.setSpacing(8)
 
@@ -188,10 +161,50 @@ class SendCmdView(QWidget):
         self.payload_layout.addStretch()
         self.inner_layout.addLayout(self.payload_layout)
 
-        # Вертикальный поджим к верху рамки
+        # 4. ВЕРТИКАЛЬНАЯ ИЕРАРХИЯ ЛЕЙАУТОВ АДРЕСАЦИИ (ИСПРАВЛЕНО ВЫРАВНИВАНИЕ)
+        self.addresses_container = QWidget()
+        self.addresses_container.setFixedHeight(54)  # Оптимизировали общую высоту под компактный шаг
+
+        container_v_layout = QVBoxLayout(self.addresses_container)
+        container_v_layout.setContentsMargins(0, 0, 0, 0)
+        container_v_layout.setSpacing(4)  # Минимальный плотный шаг по вертикали
+
+        # Ряд адреса получателя (устройства)
+        dst_v_layout = QHBoxLayout()
+        dst_v_layout.setContentsMargins(0, 0, 0, 0)
+        dst_v_layout.setSpacing(8)
+
+        self.dst_label = QLabel("Адрес Получателя (HEX):")
+        self.dst_label.setFixedWidth(150)  # ИСПРАВЛЕНО: Выравниваем ширину меток, чтобы поля встали строго друг под другом
+        self.dst_input = QLineEdit()
+        self.dst_input.setFixedWidth(60)
+
+        dst_v_layout.addWidget(self.dst_label)
+        dst_v_layout.addWidget(self.dst_input)
+        dst_v_layout.addStretch()  # Поджимает поле ввода влево, убирая пустой разрыв справа
+
+        # Ряд адреса отправителя (модуля)
+        src_v_layout = QHBoxLayout()
+        src_v_layout.setContentsMargins(0, 0, 0, 0)
+        src_v_layout.setSpacing(8)
+
+        self.src_label = QLabel("Адрес Отправителя (HEX):")
+        self.src_label.setFixedWidth(150)  # ИСПРАВЛЕНО: Идентичная ширина для посимвольного выравнивания
+        self.src_input = QLineEdit()
+        self.src_input.setFixedWidth(60)
+
+        src_v_layout.addWidget(self.src_label)
+        src_v_layout.addWidget(self.src_input)
+        src_v_layout.addStretch()
+
+        container_v_layout.addLayout(dst_v_layout)
+        container_v_layout.addLayout(src_v_layout)
+
+        self.addresses_container.setVisible(False)
+        self.inner_layout.addWidget(self.addresses_container)
+
         self.inner_layout.addStretch()
 
-        # Принудительный стартовый сброс
         self.radio_new.setChecked(True)
         self.set_view_mode(False)
 
@@ -216,12 +229,11 @@ class SendCmdView(QWidget):
         self._recalculate_total_height()
 
     def _recalculate_total_height(self):
-        """Внутренний метод: динамически пересчитывает жесткую высоту панели."""
         base_h = 74
         if self.radio_container.isVisible():
             base_h += 24
         if self.addresses_container.isVisible():
-            base_h += 30
+            base_h += 58  # Скорректирована компенсация высоты под плотный шаг строк
         self.setFixedHeight(base_h)
 
     def set_view_mode(self, is_saved_mode: bool):
