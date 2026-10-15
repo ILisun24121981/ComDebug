@@ -1,5 +1,4 @@
-# === ЧАСТЬ 1 ИЗ 3 ===
-
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 1 ИЗ 3) ===
 import struct
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer, Qt
@@ -20,48 +19,47 @@ from app.controllers.SaveCmdPatternController import SaveCmdPatternController
 
 
 class ApplicationController(QObject):
-    """
-    Корневой оркестратор приложения (Root MVC Controller).
-    Координирует межмодульную телеметрию, логирование и ГЛОБАЛЬНЫЙ контроль таймаутов КНБК.
-    Защищен от C++ переполнения стека ядра Qt (0xC0000409) за счет асинхронного автомата шагов.
-    """
+    """Корневой оркестратор приложения (Root MVC Controller)."""
     data_parsed_signal = pyqtSignal(dict)
 
     def __init__(self, config_manager: ConfigManager, main_window: MainWindow):
         super().__init__()
         self.config_manager = config_manager
         self.main_window = main_window
-
         self.rx_buffer = bytearray()
 
-        # ГЛОБАЛЬНЫЕ ПАРАМЕТРЫ КОНТРОЛЯ ТРАНЗАКЦИЙ ДЛЯ ВСЕХ ПРОТОКОЛОВ (Gels, Aps, IDS)
         self.is_transaction_active = False
         self.current_transaction_id = 0
 
-        # Постоянный монолитный объект таймера для контроля таймаутов шины КНБК
         self.global_timeout_timer = QTimer(self)
         self.global_timeout_timer.setSingleShot(True)
-        self.global_timeout_timer.timeout.connect(self._handle_global_transaction_timeout_event)
+        self.global_timeout_timer.timeout.connect(
+            self._handle_global_transaction_timeout_event
+        )
 
         self.com_port_controller = ComPortController(
-            config_manager=self.config_manager, view=self.main_window.com_port_view
+            config_manager=self.config_manager,
+            view=self.main_window.com_port_view
         )
         self.port_logger_controller = PortLoggerController(
             view=self.main_window.port_logger_view
         )
         self.send_cmd_view = self.main_window.send_cmd_view
         self.send_cmd_controller = SendCmdController(view=self.send_cmd_view)
-        self.send_cmd_controller.on_command_ready_to_dispatch = self.handle_manual_command_dispatch
+        self.send_cmd_controller.on_command_ready_to_dispatch = (
+            self.handle_manual_command_dispatch
+        )
 
         self.patterns_manager = CmdPatternsManager()
-        self.send_cmd_controller.save_pattern_requested.connect(self.process_pattern_save_request)
+        self.send_cmd_controller.save_pattern_requested.connect(
+            self.process_pattern_save_request
+        )
 
         self.ids_panel_controller: Optional[IdsPanelController] = None
         self.ids_protocol_instance: Optional[IdsProtocol] = None
         self.gels_protocol_instance: Optional[GelsProtocol] = None
         self.aps_protocol_instance: Optional[ApsProtocol] = None
 
-        # Инициализация подсистемы автоматического забойного опроса внутри MVC
         self.auto_polling_model = AutoPollingModel()
         self.auto_polling_controller = AutoPollingController(
             view=self.main_window,
@@ -69,7 +67,13 @@ class ApplicationController(QObject):
             main_controller=self
         )
 
-        # Выставляем тип соединения QueuedConnection для безопасной изоляции очередей событий
+        # Создаем и привязываем новый обособленный MVC контроллер панели автоопроса
+        from app.controllers.SetAutoPatternsController import SetAutoPatternsController
+        self.set_auto_patterns_controller = SetAutoPatternsController(
+            view=self.main_window.auto_patterns_view,
+            auto_polling_controller=self.auto_polling_controller
+        )
+
         self.auto_polling_controller.send_command_signal.connect(
             self.handle_auto_polling_dispatch,
             Qt.ConnectionType.QueuedConnection
@@ -81,37 +85,36 @@ class ApplicationController(QObject):
         self.com_port_controller.model.data_received.connect(self.handle_incoming_bytes)
         self.com_port_controller.model.error_occurred.connect(self.handle_hardware_connection_error)
 
-    # === ЧАСТЬ 2 ИЗ 3 ===
-
     def handle_session_start(self, protocol_name: str):
-        """Вызывается при успешном открытии физического COM-порта."""
         self.rx_buffer.clear()
         self.is_transaction_active = False
         self.current_transaction_id = 0
-        self.port_logger_controller.write_log("sys", f"--- Физический канал связи успешно открыт [{protocol_name}] ---")
+        self.port_logger_controller.write_log(
+            "sys", f"--- Канал связи открыт [{protocol_name}] ---"
+        )
         self.send_cmd_controller.configure_for_protocol(protocol_name)
+
+        # Передаем имя активного прибора КНБК в контроллер автоопроса для загрузки списков
+        self.set_auto_patterns_controller.configure_for_protocol(protocol_name)
 
         if protocol_name == "IDS":
             ids_map = self.config_manager.load_ids_identifiers()
             self.main_window.show_ids_interface(ids_map)
-
             try:
                 self.data_parsed_signal.disconnect()
             except TypeError:
                 pass
-
             self.ids_protocol_instance = IdsProtocol(ids_map)
             self.ids_panel_controller = IdsPanelController(view=self.main_window.ids_panel_view)
-
             self.data_parsed_signal.connect(self.ids_panel_controller.update_telemetry_data)
             self.ids_panel_controller.send_request_signal.connect(self.execute_ids_data_query)
             self.ids_panel_controller.save_pattern_requested_signal.connect(self.process_ids_panel_pattern_save)
-
         elif protocol_name == "Gels":
             self.gels_protocol_instance = GelsProtocol()
-
         elif protocol_name == "Aps":
             self.aps_protocol_instance = ApsProtocol()
+
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 2 ИЗ 3) ===
 
     def handle_session_stop(self):
         """Вызывается при штатном закрытии физического COM-порта пользователем."""
@@ -121,34 +124,58 @@ class ApplicationController(QObject):
         self.main_window.send_cmd_view.set_addresses_container_visible(False)
         self.main_window.send_cmd_view.set_radio_layout_visible(False)
 
+        # 1. Принудительная изоляция сигналов перед удалением панели
         try:
             self.data_parsed_signal.disconnect()
         except TypeError:
             pass
 
+        # 2. Полностью разрываем связи левой панели IDS с оркестратором
         if self.ids_panel_controller:
             try:
-                self.ids_panel_controller.send_request_signal.disconnect(self.execute_ids_data_query)
-                self.ids_panel_controller.save_pattern_requested_signal.disconnect(self.process_ids_panel_pattern_save)
+                self.ids_panel_controller.send_request_signal.disconnect(
+                    self.execute_ids_data_query
+                )
+            except TypeError:
+                pass
+            try:
+                self.ids_panel_controller.save_pattern_requested_signal.disconnect(
+                    self.process_ids_panel_pattern_save
+                )
             except TypeError:
                 pass
 
+            if self.ids_panel_controller.view:
+                try:
+                    self.ids_panel_controller.view.query_requested.disconnect()
+                    self.ids_panel_controller.view.save_pattern_requested.disconnect()
+                    self.ids_panel_controller.view.param_toggled.disconnect()
+                except TypeError:
+                    pass
+
+        # 3. Обнуляем ссылки на контроллеры КНБК ДО перерисовки интерфейса!
         self.ids_panel_controller = None
         self.ids_protocol_instance = None
         self.gels_protocol_instance = None
         self.aps_protocol_instance = None
         self.rx_buffer.clear()
         self.is_transaction_active = False
+
+        # 4. Безопасно переключаем заглушку без удаления элементов в C++
         self.main_window.show_default_left_interface()
-        self.port_logger_controller.write_log("sys", "--- Физический канал связи закрыт пользователем ---")
+        self.port_logger_controller.write_log(
+            "sys", "--- Физический канал связи закрыт пользователем ---"
+        )
 
     @pyqtSlot(str)
     def handle_hardware_connection_error(self, reason_text: str):
-        """Вызывается автоматически при критическом сбое porta (выдергивании USB)."""
+        """Вызывается автоматически при критическом сбое порта (выдергивании USB)."""
         self.auto_polling_controller.handle_stop_execution()
         self.global_timeout_timer.stop()
 
-        self.port_logger_controller.write_log("err", f"КРИТИЧЕСКИЙ СБОЙ СВЯЗИ: {reason_text}".upper())
+        self.port_logger_controller.write_log(
+            "err", f"КРИТИЧЕСКИЙ СБОЙ СВЯЗИ: {reason_text}".upper()
+        )
 
         self.com_port_controller.view.set_connected_state(False)
         self.main_window.send_cmd_view.set_addresses_container_visible(False)
@@ -161,10 +188,25 @@ class ApplicationController(QObject):
 
         if self.ids_panel_controller:
             try:
-                self.ids_panel_controller.send_request_signal.disconnect(self.execute_ids_data_query)
-                self.ids_panel_controller.save_pattern_requested_signal.disconnect(self.process_ids_panel_pattern_save)
+                self.ids_panel_controller.send_request_signal.disconnect(
+                    self.execute_ids_data_query
+                )
             except TypeError:
                 pass
+            try:
+                self.ids_panel_controller.save_pattern_requested_signal.disconnect(
+                    self.process_ids_panel_pattern_save
+                )
+            except TypeError:
+                pass
+
+            if self.ids_panel_controller.view:
+                try:
+                    self.ids_panel_controller.view.query_requested.disconnect()
+                    self.ids_panel_controller.view.save_pattern_requested.disconnect()
+                    self.ids_panel_controller.view.param_toggled.disconnect()
+                except TypeError:
+                    pass
 
         self.ids_panel_controller = None
         self.ids_protocol_instance = None
@@ -177,330 +219,206 @@ class ApplicationController(QObject):
         self.com_port_controller.model.close_port()
 
     def _start_global_timeout_timer(self):
-        """Перезапускает монолитный таймер ожидания ответа забойного прибора."""
         self.global_timeout_timer.stop()
         self.is_transaction_active = True
         self.current_transaction_id += 1
         self.global_timeout_timer.start(1500)
 
     def _handle_global_transaction_timeout_event(self):
-        """Срабатывает ровно через 1500 мс, если транзакция не закрылась входящим пакетом."""
         if self.is_transaction_active:
             self.is_transaction_active = False
-
             if self.ids_panel_controller:
                 self.ids_panel_controller.view.set_interactive_state(True)
                 self.ids_panel_controller.view.set_session_status(
-                    "Предупреждение: таймаут ответа КНБК шины", "#D9534F", font_bold=True
+                    "Таймаут ответа шины", "#D9534F", font_bold=True
                 )
-
-            self.port_logger_controller.write_log("err", "Таймаут ответа прибора КНБК (1500 мс)")
-
-            # Продвигаем асинхронный автомат шагов автоопроса по таймауту
+            self.port_logger_controller.write_log("err", "Таймаут ответа КНБК (1500 мс)")
             if self.auto_polling_controller.is_running:
                 self.auto_polling_controller.schedule_next_step()
 
-    # === ЧАСТЬ 3А ИЗ 3 ===
-
     @pyqtSlot(bytes)
     def handle_incoming_bytes(self, raw_bytes: bytes):
-        if not raw_bytes:
-            return
+        if not raw_bytes: return
         active_proto = self.com_port_controller.active_protocol_name
         if active_proto not in ["IDS", "Gels", "Aps"]:
-            self.port_logger_controller.write_log(
-                "in", raw_bytes.hex(" ").upper()
-            )
+            self.port_logger_controller.write_log("in", raw_bytes.hex(" ").upper())
             return
         self.rx_buffer.extend(raw_bytes)
 
         if active_proto == "IDS" and self.ids_protocol_instance:
             while True:
-                frame = self.ids_protocol_instance.parse_stream(
-                    self.rx_buffer
-                )
-                if frame is None:
-                    break
+                frame = self.ids_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None: break
                 raw_packet = frame.get("raw_packet", b"")
                 if raw_packet:
                     direction = "in" if frame.get("is_valid", False) else "err"
-                    self.port_logger_controller.write_log(
-                        direction, raw_packet.hex(" ").upper()
-                    )
-                if not frame.get("is_valid", False):
-                    continue
-
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
+                if not frame.get("is_valid", False): continue
                 self.is_transaction_active = False
                 self.global_timeout_timer.stop()
-
                 payload_bytes = frame.get("payload", b"")
-                parsed_data = (
-                    self.ids_protocol_instance.parse_dynamic_payload(
-                        payload_bytes
-                    )
-                )
-                if parsed_data:
-                    self.data_parsed_signal.emit(parsed_data)
-
+                parsed_data = self.ids_protocol_instance.parse_dynamic_payload(payload_bytes)
+                if parsed_data: self.data_parsed_signal.emit(parsed_data)
                 if self.auto_polling_controller.is_running:
                     self.auto_polling_controller.schedule_next_step()
 
         elif active_proto == "Gels" and self.gels_protocol_instance:
             while True:
-                frame = self.gels_protocol_instance.parse_stream(
-                    self.rx_buffer
-                )
-                if frame is None:
-                    break
+                frame = self.gels_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None: break
                 raw_packet = frame.get("raw_packet", b"")
                 if raw_packet:
                     direction = "in" if frame.get("is_valid", False) else "err"
-                    self.port_logger_controller.write_log(
-                        direction, raw_packet.hex(" ").upper()
-                    )
-
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
                 if frame.get("is_valid", False):
                     self.is_transaction_active = False
                     self.global_timeout_timer.stop()
-                    print(
-                        f"[ApplicationController] Пакет Gels: {frame}"
-                    )
-
                     if self.auto_polling_controller.is_running:
                         self.auto_polling_controller.schedule_next_step()
 
         elif active_proto == "Aps" and self.aps_protocol_instance:
             while True:
-                frame = self.aps_protocol_instance.parse_stream(
-                    self.rx_buffer
-                )
-                if frame is None:
-                    break
+                frame = self.aps_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None: break
                 raw_packet = frame.get("raw_packet", b"")
                 if raw_packet:
                     direction = "in" if frame.get("is_valid", False) else "err"
-                    self.port_logger_controller.write_log(
-                        direction, raw_packet.hex(" ").upper()
-                    )
-
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
                 if frame.get("is_valid", False):
                     self.is_transaction_active = False
                     self.global_timeout_timer.stop()
-                    print(
-                        f"[ApplicationController] Пакет Aps: {frame}"
-                    )
-
                     if self.auto_polling_controller.is_running:
                         self.auto_polling_controller.schedule_next_step()
-# === ЧАСТЬ 3Б ИЗ 3 ===
 
-    def handle_manual_command_dispatch(
-        self, dst_addr: int, src_addr: int, command_code: int, payload: bytes
-    ):
-        """Вызывается при ручной отправке любой команды с пульта."""
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 3 ИЗ 3) ===
+
+    def handle_manual_command_dispatch(self, dst_addr: int, src_addr: int, command_code: int, payload: bytes):
         if not self.com_port_controller.model.is_connected():
-            self.main_window.com_port_view.show_error(
-                "Ошибка", "Передача невозможна: COM-порт закрыт."
-            )
+            self.main_window.com_port_view.show_error("Ошибка", "Порт закрыт.")
             return
-
         if self.is_transaction_active:
-            self.port_logger_controller.write_log(
-                "err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА"
-            )
+            self.port_logger_controller.write_log("err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА")
             self.is_transaction_active = False
             self.global_timeout_timer.stop()
 
-        proto = self.com_port_controller.active_protocol_name
-        if proto == "IDS" and self.ids_protocol_instance:
-            full_packet = self.ids_protocol_instance.pack_message(
-                dst_addr, src_addr, command_code, payload
-            )
-        elif proto == "Gels" and self.gels_protocol_instance:
-            full_packet = self.gels_protocol_instance.pack_message(
-                dst_addr, src_addr, command_code, payload
-            )
-        elif proto == "Aps" and self.aps_protocol_instance:
-            full_packet = self.aps_protocol_instance.pack_message(
-                dst_addr, src_addr, command_code, payload
-            )
+        if self.com_port_controller.active_protocol_name == "IDS" and self.ids_protocol_instance:
+            full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+        elif self.com_port_controller.active_protocol_name == "Gels" and self.gels_protocol_instance:
+            full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+        elif self.com_port_controller.active_protocol_name == "Aps" and self.aps_protocol_instance:
+            full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         else:
-            full_packet = (
-                struct.pack("BB", dst_addr, src_addr) + payload
-            )
+            full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
         self._start_global_timeout_timer()
         self.com_port_controller.model.send_data(full_packet)
-        self.port_logger_controller.write_log(
-            "out", full_packet.hex(" ").upper()
-        )
+        self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
 
-    def process_pattern_save_request(
-        self, command_code: int, payload: bytes
-    ):
+    def process_pattern_save_request(self, command_code: int, payload: bytes):
         addrs = self.main_window.send_cmd_view.get_addresses_values()
         try:
-            dst_addr = int(addrs["dst"], 16)
-            src_addr = int(addrs["src"], 16)
-        except ValueError:
-            dst_addr, src_addr = 0x29, 0x00
-
+            dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
+        except ValueError: dst_addr, src_addr = 0x29, 0x00
         proto = self.com_port_controller.active_protocol_name
         if proto == "IDS" and self.ids_protocol_instance:
-            full_packet = self.ids_protocol_instance.pack_message(
-                dst_addr, src_addr, command_code, payload
-            )
+            full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         elif proto == "Gels" and self.gels_protocol_instance:
-            full_packet = self.gels_protocol_instance.pack_message(
-                dst_addr, src_addr, command_code, payload
-            )
+            full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         elif proto == "Aps":
             if self.aps_protocol_instance:
-                full_packet = self.aps_protocol_instance.pack_message(
-                    dst_addr, src_addr, command_code, payload
-                )
+                full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
             else:
                 tmp_aps = ApsProtocol()
-                full_packet = tmp_aps.pack_message(
-                    dst_addr, src_addr, command_code, payload
-                )
-        else:
-            full_packet = (
-                struct.pack("BB", dst_addr, src_addr) + payload
-            )
+                full_packet = tmp_aps.pack_message(dst_addr, src_addr, command_code, payload)
+        else: full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
         packet_hex_string = full_packet.hex(" ").upper()
-        save_view = SaveCmdPatternView(
-            formatted_packet_hex=packet_hex_string,
-            parent=self.main_window
-        )
-        save_controller = SaveCmdPatternController(
-            view=save_view, patterns_manager=self.patterns_manager
-        )
+        save_view = SaveCmdPatternView(formatted_packet_hex=packet_hex_string, parent=self.main_window)
+        save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         if save_controller.execute_save(proto, full_packet):
             self.send_cmd_controller.configure_for_protocol(proto)
 
     def process_ids_panel_pattern_save(self, selected_ids: list):
-        if not self.ids_protocol_instance:
-            return
+        if not self.ids_protocol_instance: return
         addrs = self.main_window.send_cmd_view.get_addresses_values()
-        try:
-            dst_addr = int(addrs["dst"], 16)
-            src_addr = int(addrs["src"], 16)
-        except ValueError:
-            dst_addr, src_addr = 0x29, 0x00
-
-        payload = bytearray()
-        payload.append(len(selected_ids))
-        for param_id in selected_ids:
-            payload.append(param_id)
-
-        command_code = 0x11
-        full_packet = self.ids_protocol_instance.pack_message(
-            dst_addr, src_addr, command_code, bytes(payload)
-        )
-        packet_hex_string = full_packet.hex(" ").upper()
-
-        save_view = SaveCmdPatternView(
-            formatted_packet_hex=packet_hex_string,
-            parent=self.main_window
-        )
-        save_controller = SaveCmdPatternController(
-            view=save_view, patterns_manager=self.patterns_manager
-        )
+        try: dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
+        except ValueError: dst_addr, src_addr = 0x29, 0x00
+        payload = bytearray([len(selected_ids)])
+        for param_id in selected_ids: payload.append(param_id)
+        full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, 0x11, bytes(payload))
+        save_view = SaveCmdPatternView(formatted_packet_hex=full_packet.hex(" ").upper(), parent=self.main_window)
+        save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         proto = self.com_port_controller.active_protocol_name
         if save_controller.execute_save(proto, full_packet):
             self.send_cmd_controller.configure_for_protocol(proto)
 
     def execute_ids_data_query(self, selected_ids: list):
-        """Вызывается при пакетном запросе телеметрии из панели IDS."""
-        if (
-            not self.com_port_controller.model.is_connected()
-            or not self.ids_protocol_instance
-        ):
-            self.main_window.com_port_view.show_error(
-                "Ошибка", "Передача невозможна: COM-порт закрыт."
-            )
+        if not self.com_port_controller.model.is_connected() or not self.ids_protocol_instance:
+            self.main_window.com_port_view.show_error("Ошибка", "Порт закрыт.")
             return
-        if not selected_ids:
-            return
+        if not selected_ids: return
         addrs = self.main_window.send_cmd_view.get_addresses_values()
-        try:
-            dst_addr = int(addrs["dst"], 16)
-            src_addr = int(addrs["src"], 16)
-        except ValueError:
-            dst_addr, src_addr = 0x29, 0x00
-
-        payload = bytearray()
-        payload.append(len(selected_ids))
-        for param_id in selected_ids:
-            payload.append(param_id)
-
-        command_code = 0x11
-        full_packet = self.ids_protocol_instance.pack_message(
-            dst_addr, src_addr, command_code, bytes(payload)
-        )
-
+        try: dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
+        except ValueError: dst_addr, src_addr = 0x29, 0x00
+        payload = bytearray([len(selected_ids)])
+        for param_id in selected_ids: payload.append(param_id)
+        full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, 0x11, bytes(payload))
         if self.is_transaction_active:
-            self.port_logger_controller.write_log(
-                "err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА"
-            )
+            self.port_logger_controller.write_log("err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА")
             self.is_transaction_active = False
             self.global_timeout_timer.stop()
-
         self._start_global_timeout_timer()
         self.com_port_controller.model.send_data(full_packet)
-        self.port_logger_controller.write_log(
-            "out", full_packet.hex(" ").upper()
-        )
+        self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
 
     def send_saved_command_by_name(self, pattern_name: str):
-        """Извлекает готовую кодограмму по имени шаблона в порт."""
-        # ИСПРАВЛЕНО: Если автоопрос уже выключен или порт закрыт — прерываем отправку
-        if not self.auto_polling_controller.is_running:
+        # МОНУМЕНТАЛЬНЫЙ БАРЬЕР: Изолирует очередь от застрявших QueuedConnection сигналов
+        if not self.auto_polling_controller or not self.auto_polling_controller.is_running:
             return
 
         if not self.com_port_controller.model.is_connected():
             self.auto_polling_controller.handle_stop_execution()
             return
-
         proto_name = self.com_port_controller.active_protocol_name
 
-        patterns = self.patterns_manager._read_file(proto_name)
-        raw_data = patterns.get(pattern_name, "")
-        if not raw_data:
-            print(f"[AutoPolling] Шаблон '{pattern_name}' отсутствует.")
-            return
-
-        if isinstance(raw_data, str):
+        if pattern_name.startswith("__DYNAMIC_NEW_LOOP__:"):
             try:
-                clean_hex = raw_data.replace(" ", "")
-                full_packet = bytes.fromhex(clean_hex)
-            except ValueError:
-                print(f"[AutoPolling] Ошибка HEX для '{pattern_name}'")
-                return
-        elif isinstance(raw_data, (bytes, bytearray)):
-            full_packet = bytes(raw_data)
+                cmd_hex = pattern_name.split(":")
+                command_code = int(cmd_hex[1], 16)
+                payload = self.auto_polling_controller.current_new_payload_bytes
+                addrs = self.main_window.send_cmd_view.get_addresses_values()
+                dst_addr = int(addrs["dst"], 16)
+                src_addr = int(addrs["src"], 16)
+            except Exception:
+                dst_addr, src_addr, command_code, payload = 0x29, 0x00, 0x00, b""
+
+            if proto_name == "IDS" and self.ids_protocol_instance:
+                full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+            elif proto_name == "Gels" and self.gels_protocol_instance:
+                full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+            elif proto_name == "Aps" and self.aps_protocol_instance:
+                full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+            else:
+                full_packet = struct.pack("BB", dst_addr, src_addr) + payload
         else:
-            return
+            patterns = self.patterns_manager._read_file(proto_name)
+            raw_data = patterns.get(pattern_name, "")
+            if not raw_data: return
+            if isinstance(raw_data, str):
+                try: full_packet = bytes.fromhex(raw_data.replace(" ", ""))
+                except ValueError: return
+            elif isinstance(raw_data, (bytes, bytearray)): full_packet = bytes(raw_data)
+            else: return
 
         if self.is_transaction_active:
-            self.port_logger_controller.write_log(
-                "err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА"
-            )
+            self.port_logger_controller.write_log("err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА")
             self.is_transaction_active = False
             self.global_timeout_timer.stop()
-
         self._start_global_timeout_timer()
-
-        # ИСПРАВЛЕНО: Финальная проверка физического соединения перед отправкой
         if self.com_port_controller.model.is_connected():
             self.com_port_controller.model.send_data(full_packet)
-            self.port_logger_controller.write_log(
-                "out", full_packet.hex(" ").upper()
-            )
+            self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
 
     @pyqtSlot(str)
     def handle_auto_polling_dispatch(self, pattern_name: str):
-        """Вызывается через очередь. Изолирован от QComboBox."""
         self.send_saved_command_by_name(pattern_name)

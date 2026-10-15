@@ -4,14 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Автоматический опрос">
-      <change afterPath="$PROJECT_DIR$/app/controllers/ManageAutoPollingPatternsController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/AutoPollingPatternsManager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/ManageAutoPollingPatternsView.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/SetAutoPatternsView.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Автоматический опрос -корявая версия">
+      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -204,7 +199,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792074025106</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Автоматический опрос -корявая версия">
+      <option name="closed" value="true" />
+      <created>1792086732969</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1792086732969</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -225,7 +228,8 @@
     <MESSAGE value="Финальный вид SendCmdView" />
     <MESSAGE value="Корректировки MainView" />
     <MESSAGE value="Автоматический опрос" />
-    <option name="LAST_COMMIT_MESSAGE" value="Автоматический опрос" />
+    <MESSAGE value="Автоматический опрос -корявая версия" />
+    <option name="LAST_COMMIT_MESSAGE" value="Автоматический опрос -корявая версия" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

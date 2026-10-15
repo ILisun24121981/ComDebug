@@ -1,5 +1,5 @@
 # === ФАЙЛ: app/controllers/SetAutoPatternsController.py (ЧАСТЬ 1 ИЗ 2) ===
-from PyQt6.QtCore import QObject, QTimer
+from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QDialog, QMessageBox
 from app.views.ManageAutoPollingPatternsView import ManageAutoPollingPatternsView
 from app.controllers.ManageAutoPollingPatternsController import (
@@ -10,7 +10,7 @@ from app.controllers.ManageAutoPollingPatternsController import (
 class SetAutoPatternsController(QObject):
     """
     Контроллер панели автоопроса (PyQt6 Controller).
-    Полностью защищен от рекурсивных падений 0xC0000409 при закрытии порта.
+    Очищен от лишних таймеров, работает синхронно и стабильно.
     """
 
     def __init__(self, view, auto_polling_controller):
@@ -41,13 +41,7 @@ class SetAutoPatternsController(QObject):
         self._block_radio_handler = True
         self.active_protocol = protocol_name
 
-        # ИСПРАВЛЕНО: Даем Qt6 30 миллисекунд, чтобы полностью завершить закрытие
-        # COM-порта и очистить C++ стек до того, как начнется перерисовка элементов.
-        # Это полностью убирает краш 0xC0000409 при ручном отключении.
-        QTimer.singleShot(30, self._deferred_configure_refresh)
-
-    def _deferred_configure_refresh(self):
-        """Внутренний безопасный метод обновления списков после закрытия порта."""
+        # ОЧИЩЕНО: Убран QTimer.singleShot, обновление списка идет синхронно
         self.refresh_patterns_list()
         self._block_radio_handler = False
 
@@ -104,26 +98,23 @@ class SetAutoPatternsController(QObject):
         else:
             is_accepted = self.auto_ctrl.execute_polling_configuration_dialog()
             if is_accepted:
-                QTimer.singleShot(20, self._deferred_switch_to_new_mode)
+                # ОЧИЩЕНО: Переключение макета выполняется мгновенно и линейно
+                self.view.set_new_mode_view()
+                default_name = (
+                    self.auto_ctrl.auto_patterns_manager.generate_next_default_name(
+                        self.active_protocol
+                    )
+                )
+                self.view.input_pattern_name.setText(default_name)
+                self.view.input_pattern_name.selectAll()
+                self.view.input_pattern_name.setFocus()
             else:
                 self._block_radio_handler = True
                 self.view.radio_saved.setChecked(True)
                 self.view.set_saved_mode_view()
                 self._block_radio_handler = False
                 self.refresh_patterns_list()
-
-    # === ФАЙЛ: app/controllers/SetAutoPatternsController.py (ЧАСТЬ 2 ИЗ 2) ===
-
-    def _deferred_switch_to_new_mode(self):
-        self.view.set_new_mode_view()
-        default_name = (
-            self.auto_ctrl.auto_patterns_manager.generate_next_default_name(
-                self.active_protocol
-            )
-        )
-        self.view.input_pattern_name.setText(default_name)
-        self.view.input_pattern_name.selectAll()
-        self.view.input_pattern_name.setFocus()
+# === ФАЙЛ: app/controllers/SetAutoPatternsController.py (ЧАСТЬ 2 ИЗ 2) ===
 
     def _handle_config_clicked(self):
         is_accepted = self.auto_ctrl.execute_polling_configuration_dialog()
@@ -131,24 +122,22 @@ class SetAutoPatternsController(QObject):
             names = self.auto_ctrl.auto_patterns_manager.load_pattern_names(
                 self.active_protocol
             )
+            # ОЧИЩЕНО: Убраны отложенные singleShot вызовы, код стал линейным
             if not names:
-                QTimer.singleShot(20, self._deferred_initial_switch_no_radio)
+                self.view.set_initial_capture_name_view()
+                default_name = (
+                    self.auto_ctrl.auto_patterns_manager.generate_next_default_name(
+                        self.active_protocol
+                    )
+                )
+                self.view.input_pattern_name.setText(default_name)
+                self.view.input_pattern_name.selectAll()
+                self.view.input_pattern_name.setFocus()
             else:
-                QTimer.singleShot(20, self.refresh_patterns_list)
-
-    def _deferred_initial_switch_no_radio(self):
-        self.view.set_initial_capture_name_view()
-        default_name = (
-            self.auto_ctrl.auto_patterns_manager.generate_next_default_name(
-                self.active_protocol
-            )
-        )
-        self.view.input_pattern_name.setText(default_name)
-        self.view.input_pattern_name.selectAll()
-        self.view.input_pattern_name.setFocus()
+                self.refresh_patterns_list()
 
     def _handle_combo_changed(self, name: str):
-        # Жесткий барьер от пустых строк .clear() при отключении порта КНБК
+        # Монументальный барьер от пустых строк .clear() при отключении порта
         if self._block_radio_handler or not name or name.strip() == "":
             return
 
