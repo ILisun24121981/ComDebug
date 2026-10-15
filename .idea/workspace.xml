@@ -4,8 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Финальный вид SendCmdView">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Корректировки MainView">
+      <change afterPath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/models/AutoPollingModel.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/ComPortController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ComPortController.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -36,6 +41,7 @@
   &quot;keyToString&quot;: {
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;Python.ApplicationController.executor&quot;: &quot;Run&quot;,
+    &quot;Python.AutoPollingController.executor&quot;: &quot;Debug&quot;,
     &quot;Python.IdsProtocol.executor&quot;: &quot;Debug&quot;,
     &quot;Python.MainWindow.executor&quot;: &quot;Run&quot;,
     &quot;Python.SendCmdView.executor&quot;: &quot;Run&quot;,
@@ -181,7 +187,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792055327452</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Корректировки MainView">
+      <option name="closed" value="true" />
+      <created>1792058473049</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1792058473049</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -200,7 +214,8 @@
     <MESSAGE value="редактировал логер" />
     <MESSAGE value="1" />
     <MESSAGE value="Финальный вид SendCmdView" />
-    <option name="LAST_COMMIT_MESSAGE" value="Финальный вид SendCmdView" />
+    <MESSAGE value="Корректировки MainView" />
+    <option name="LAST_COMMIT_MESSAGE" value="Корректировки MainView" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -209,6 +224,21 @@
           <url>file://$PROJECT_DIR$/app/models/protocols/IdsProtocol.py</url>
           <line>124</line>
           <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
+          <line>56</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
+          <line>96</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
+          <line>106</line>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

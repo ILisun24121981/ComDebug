@@ -39,22 +39,21 @@ class ComPortController:
     def handle_connect_toggle(self, port_name: str):
         """Управляет открытием и закрытием физического канала связи."""
         if self.model.is_connected():
-            self.model.close_port()
-            self.view.set_connected_state(False)
-            print(f"[ComPortController] Порт {port_name} успешно закрыт.")
-
-            # Оповещаем главный контроллер о завершении сессии связи
+            # ИСПРАВЛЕНО: Сначала останавливаем автоопрос через верхний уровень
             if self.on_session_stopped:
                 self.on_session_stopped()
+
+            # Только после полной остановки фоновых задач закрываем порт
+            self.model.close_port()
+            self.view.set_connected_state(False)
+            print(f"[ComPortController] Порт {port_name} закрыт.")
         else:
             if not port_name or port_name == "Нет портов":
-                self.view.show_error("Ошибка", "Выберите валидный COM-порт для работы.")
+                self.view.show_error("Ошибка", "Выберите валидный COM-порт.")
                 return
 
             s = self.config_manager.get_port_settings(self.active_protocol_name)
-
             try:
-                # Физически открываем дескриптор порта на шине данных
                 if self.model.open_port(
                         port_name=port_name,
                         baud_rate=s.get("baud_rate", 9600),
@@ -64,13 +63,10 @@ class ComPortController:
                         flow_control=s.get("flow_control", "None")
                 ):
                     self.view.set_connected_state(True)
-                    print(f"[ComPortController] Порт {port_name} успешно открыт.")
-
-                    # Оповещаем главный контроллер об успешном запуске сессии связи
                     if self.on_session_started:
                         self.on_session_started(self.active_protocol_name)
             except Exception as err:
-                self.view.show_error("Ошибка связи", f"Не удалось открыть порт {port_name}.\nДетали: {err}")
+                self.view.show_error("Ошибка связи", f"Не удалось открыть порт.\nДетали: {err}")
 
     def handle_protocol_change(self, protocol_name: str):
         """Событие GUI: Пользователь выбрал другой протокол в выпадающем списке."""
