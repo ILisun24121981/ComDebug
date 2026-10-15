@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QRadioButton, QComboBox, QStackedWidget, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, \
+    QRadioButton, QComboBox, QStackedWidget, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal
 
 
@@ -6,7 +7,7 @@ class SendCmdView(QWidget):
     """
     Сквозной адаптивный виджет ручной отправки и выбора шаблонов команд (PyQt6 View).
     Содержит строки ввода кодограмм, настраиваемой HEX-адресации шины КНБК и payload данных.
-    Использует QStackedWidget для предотвращения прыжков интерфейса по высоте.
+    Использует QGridLayout для обеспечения безупречной соосности левой и правой колонок элементов.
     """
     send_clicked = pyqtSignal()
     save_clicked = pyqtSignal()
@@ -59,29 +60,49 @@ class SendCmdView(QWidget):
                 border-color: #444444;
                 background-color: #D5D5D5;
             }
+            QRadioButton {
+                background-color: transparent;
+                color: #000000;
+            }
+            QRadioButton::indicator {
+                width: 12px;
+                height: 12px;
+                border: 1px solid #777777;
+                border-radius: 7px;
+                background-color: #FFFFFF;
+            }
+            QRadioButton::indicator:checked {
+                border: 2px solid #1D6477;
+                background-color: #E6F2F7;
+                image: url("");
+                width: 8px;
+                height: 8px;
+                padding: 2px;
+                border-radius: 7px;
+            }
         """)
 
-        # Внутренний рабочий слой для элементов управления
-        self.inner_layout = QVBoxLayout(self.border_frame)
-        self.inner_layout.setContentsMargins(10, 10, 10, 10)
-        self.inner_layout.setSpacing(6)
+        # Внутренний рабочий слой на жесткой сетке QGridLayout
+        self.grid_layout = QGridLayout(self.border_frame)
+        self.grid_layout.setContentsMargins(12, 12, 12, 12)
+        self.grid_layout.setSpacing(6)
 
         self.main_layout.addWidget(self.border_frame)
 
-        # Базовая высота с учетом добавленной промышленной рамки и внутренних отступов
-        self.setFixedHeight(74)
+        # Геометрическая изоляция виджета от внешнего окружения
+        self.setFixedWidth(350)
+        self.setFixedHeight(114)
 
-        # 1. КОНТЕЙНЕР РАДИОКНОПОК И УПРАВЛЯЮЩИХ КНОПОК ШАБЛОНОВ
-        self.radio_container = QWidget()
-        self.radio_container.setFixedHeight(24)
-        radio_inner_layout = QHBoxLayout(self.radio_container)
+        # --- РЯД 0: ОБЪЕДИНЕННЫЙ КОМПАКТНЫЙ СЛОЙ ЛЕЙБЛА И РАДИОКНОПОК ---
+        radio_inner_layout = QHBoxLayout()
         radio_inner_layout.setContentsMargins(0, 0, 0, 0)
         radio_inner_layout.setSpacing(12)
 
-        radio_inner_layout.addWidget(QLabel("Режим команды:"))
+        self.lbl_title = QLabel("Команда (HEX):")
+        radio_inner_layout.addWidget(self.lbl_title)
+
         self.radio_saved = QRadioButton("Сохраненная")
         self.radio_new = QRadioButton("Новая")
-
         self.radio_saved.toggled.connect(lambda checked: self.mode_changed.emit(True) if checked else None)
         self.radio_new.toggled.connect(lambda checked: self.mode_changed.emit(False) if checked else None)
 
@@ -89,26 +110,12 @@ class SendCmdView(QWidget):
         radio_inner_layout.addWidget(self.radio_new)
         radio_inner_layout.addStretch()
 
-        self.edit_patterns_button = QPushButton("Редактировать")
-        self.edit_patterns_button.setFixedSize(105, 22)
-        self.edit_patterns_button.clicked.connect(self.edit_patterns_clicked.emit)
-        radio_inner_layout.addWidget(self.edit_patterns_button)
+        self.grid_layout.addLayout(radio_inner_layout, 0, 0, 1, 2,
+                                   Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        self.save_button = QPushButton("Сохранить")
-        self.save_button.setFixedSize(105, 22)
-        self.save_button.clicked.connect(self.save_clicked.emit)
-        radio_inner_layout.addWidget(self.save_button)
-
-        self.radio_container.setVisible(False)
-        self.inner_layout.addWidget(self.radio_container)
-
-        # 2. РЯД УПРАВЛЕНИЯ И ОТПРАВКИ КОМАНД (send_cmd_layout)
-        self.send_cmd_layout = QHBoxLayout()
-        self.send_cmd_layout.setSpacing(8)
-        self.send_cmd_layout.addWidget(QLabel("Команда (HEX):"))
-
+        # --- РЯД 1: ПОЛЕ ВВОДА КОМАНДЫ (КОЛ. 0) И КНОПКА ОТПРАВИТЬ (КОЛ. 1) ---
         self.cmd_stack = QStackedWidget()
-        self.cmd_stack.setFixedSize(180, 24)
+        self.cmd_stack.setFixedSize(175, 24)
 
         self.cmd_input = QLineEdit()
         self.cmd_input.setPlaceholderText("1A")
@@ -118,133 +125,129 @@ class SendCmdView(QWidget):
         self.pattern_combobox = QComboBox()
         self.pattern_combobox.currentTextChanged.connect(self.pattern_selected.emit)
         self.cmd_stack.addWidget(self.pattern_combobox)
-        self.send_cmd_layout.addWidget(self.cmd_stack)
+        self.grid_layout.addWidget(self.cmd_stack, 1, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         self.send_button = QPushButton("Отправить")
-        self.send_button.setFixedSize(85, 24)
+        self.send_button.setFixedSize(145, 24)
         self.send_button.clicked.connect(self.send_clicked.emit)
-        self.send_cmd_layout.addWidget(self.send_button)
-
-        self.send_cmd_layout.addStretch()
-        self.inner_layout.addLayout(self.send_cmd_layout)
-        # 3. РЯД ПОЛЕЗНОЙ НАГРУЗКИ (payload_layout)
-        self.payload_layout = QHBoxLayout()
-        self.payload_layout.setSpacing(8)
-
-        self.bottom_left_stack = QStackedWidget()
-        self.bottom_left_stack.setFixedSize(180, 24)
-
-        self.payload_button = QPushButton("Добавить данные к команде")
+        self.grid_layout.addWidget(self.send_button, 1, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        # --- РЯД 2: КНОПКА ДОБАВИТЬ ДАННЫЕ И ИНФО-ЛЕЙБЛ РАЗМЕЩЕНЫ НАПРЯМУЮ В ЯЧЕЙКЕ ---
+        self.payload_button = QPushButton("Добавить данные")
+        self.payload_button.setFixedSize(175, 24)
         self.payload_button.clicked.connect(self.payload_requested.emit)
-        self.bottom_left_stack.addWidget(self.payload_button)
+        self.grid_layout.addWidget(self.payload_button, 2, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         self.info_cmd_label = QLabel("")
         self.info_cmd_label.setStyleSheet("color: #0056b3; font-weight: bold; font-size: 11px;")
         self.info_cmd_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        self.bottom_left_stack.addWidget(self.info_cmd_label)
-        self.payload_layout.addWidget(self.bottom_left_stack)
+        self.info_cmd_label.setFixedSize(175, 24)
+        self.grid_layout.addWidget(self.info_cmd_label, 2, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        self.payload_status_label = QLabel("Данные отсутствуют (0 байт)")
+        # Правые управляющие кнопки ложатся в Колонку 1 (строго под кнопку Отправить)
+        self.edit_patterns_button = QPushButton("Редактировать")
+        self.edit_patterns_button.setFixedSize(145, 24)
+        self.edit_patterns_button.clicked.connect(self.edit_patterns_clicked.emit)
+        self.grid_layout.addWidget(self.edit_patterns_button, 2, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        self.save_button = QPushButton("Сохранить")
+        self.save_button.setFixedSize(145, 24)
+        self.save_button.clicked.connect(self.save_clicked.emit)
+        self.grid_layout.addWidget(self.save_button, 2, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        # --- РЯД 3: СТАТУС ВЫВОДА ПОЛЕЗНОЙ НАГРУЗКИ ---
+        self.payload_status_widget = QWidget()
+        self.payload_status_widget.setFixedHeight(18)  # ИСПРАВЛЕНО: Жестко закрепили высоту статус-бара
+        payload_status_inner = QHBoxLayout(self.payload_status_widget)
+        payload_status_inner.setContentsMargins(0, 0, 0, 0)
+        payload_status_inner.setSpacing(6)
+
+        self.payload_status_label = QLabel("Нет данных")
         self.payload_status_label.setStyleSheet("color: #777777; font-style: italic; font-size: 11px;")
-        self.payload_layout.addWidget(self.payload_status_label)
+        payload_status_inner.addWidget(self.payload_status_label)
 
         self.payload_edit_button = QPushButton("[?]")
-        self.payload_edit_button.setFixedSize(30, 20)
+        self.payload_edit_button.setFixedSize(30, 18)
         self.payload_edit_button.setStyleSheet(
             "font-weight: bold; color: #0056b3; background: transparent; border: none; font-size: 12px;"
         )
         self.payload_edit_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.payload_edit_button.clicked.connect(self.edit_payload_requested.emit)
         self.payload_edit_button.setVisible(False)
-        self.payload_layout.addWidget(self.payload_edit_button)
+        payload_status_inner.addWidget(self.payload_edit_button)
+        payload_status_inner.addStretch()
+        self.grid_layout.addWidget(self.payload_status_widget, 3, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        self.payload_layout.addStretch()
-        self.inner_layout.addLayout(self.payload_layout)
-
-        # 4. ВЕРТИКАЛЬНАЯ ИЕРАРХИЯ ЛЕЙАУТОВ АДРЕСАЦИИ (ИСПРАВЛЕНО ВЫРАВНИВАНИЕ)
-        self.addresses_container = QWidget()
-        self.addresses_container.setFixedHeight(54)  # Оптимизировали общую высоту под компактный шаг
-
-        container_v_layout = QVBoxLayout(self.addresses_container)
-        container_v_layout.setContentsMargins(0, 0, 0, 0)
-        container_v_layout.setSpacing(4)  # Минимальный плотный шаг по вертикали
-
-        # Ряд адреса получателя (устройства)
-        dst_v_layout = QHBoxLayout()
-        dst_v_layout.setContentsMargins(0, 0, 0, 0)
-        dst_v_layout.setSpacing(8)
-
+        # --- РЯДЫ 4 И 5: АДРЕСАЦИЯ ПОЛУЧАТЕЛЯ И ОТПРАВИТЕЛЯ ---
         self.dst_label = QLabel("Адрес Получателя (HEX):")
-        self.dst_label.setFixedWidth(150)  # ИСПРАВЛЕНО: Выравниваем ширину меток, чтобы поля встали строго друг под другом
+        self.dst_label.setFixedWidth(175)
         self.dst_input = QLineEdit()
-        self.dst_input.setFixedWidth(60)
-
-        dst_v_layout.addWidget(self.dst_label)
-        dst_v_layout.addWidget(self.dst_input)
-        dst_v_layout.addStretch()  # Поджимает поле ввода влево, убирая пустой разрыв справа
-
-        # Ряд адреса отправителя (модуля)
-        src_v_layout = QHBoxLayout()
-        src_v_layout.setContentsMargins(0, 0, 0, 0)
-        src_v_layout.setSpacing(8)
+        self.dst_input.setFixedSize(145, 22)
 
         self.src_label = QLabel("Адрес Отправителя (HEX):")
-        self.src_label.setFixedWidth(150)  # ИСПРАВЛЕНО: Идентичная ширина для посимвольного выравнивания
+        self.src_label.setFixedWidth(175)
         self.src_input = QLineEdit()
-        self.src_input.setFixedWidth(60)
+        self.src_input.setFixedSize(145, 22)
 
-        src_v_layout.addWidget(self.src_label)
-        src_v_layout.addWidget(self.src_input)
-        src_v_layout.addStretch()
+        self.grid_layout.addWidget(self.dst_label, 4, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.grid_layout.addWidget(self.dst_input, 4, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        container_v_layout.addLayout(dst_v_layout)
-        container_v_layout.addLayout(src_v_layout)
+        self.grid_layout.addWidget(self.src_label, 5, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.grid_layout.addWidget(self.src_input, 5, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        self.addresses_container.setVisible(False)
-        self.inner_layout.addWidget(self.addresses_container)
+        self.grid_layout.setColumnStretch(2, 0)
 
-        self.inner_layout.addStretch()
+        # Принудительный поджим контента сетки к верхнему краю
+        self.main_layout.addStretch()
 
+        self.set_addresses_visible_internal(False)
         self.radio_new.setChecked(True)
         self.set_view_mode(False)
 
     def update_addresses_labels(self, protocol_name: str):
         if protocol_name == "Gels":
             self.dst_label.setText("Адрес Устройства (HEX):")
-            self.dst_input.setText("01")
             self.src_label.setText("Адрес Модуля (HEX):")
+            self.dst_input.setText("01")
             self.src_input.setText("10")
         else:
             self.dst_label.setText("Адрес Получателя (HEX):")
-            self.dst_input.setText("29")
             self.src_label.setText("Адрес Отправителя (HEX):")
+            self.dst_input.setText("29")
             self.src_input.setText("00")
 
     def set_addresses_container_visible(self, visible: bool):
-        self.addresses_container.setVisible(visible)
+        self.set_addresses_visible_internal(visible)
         self._recalculate_total_height()
 
     def set_radio_layout_visible(self, visible: bool):
-        self.radio_container.setVisible(visible)
         self._recalculate_total_height()
 
+    def set_addresses_visible_internal(self, visible: bool):
+        self.dst_label.setVisible(visible)
+        self.dst_input.setVisible(visible)
+        self.src_label.setVisible(visible)
+        self.src_input.setVisible(visible)
+
+    # ИСПРАВЛЕНО: Линейная фиксация высот виджета (114px без адресов, 172px с адресами КНБК КНБК).
+    # Никаких промежуточных плавающих расчетов — прыжки устранены полностью.
     def _recalculate_total_height(self):
-        base_h = 74
-        if self.radio_container.isVisible():
-            base_h += 24
-        if self.addresses_container.isVisible():
-            base_h += 58  # Скорректирована компенсация высоты под плотный шаг строк
-        self.setFixedHeight(base_h)
+        """Внутренний метод: динамически пересчитывает жесткую высоту панели."""
+        if self.dst_label.isVisible():
+            self.setFixedHeight(172)
+        else:
+            self.setFixedHeight(114)
 
     def set_view_mode(self, is_saved_mode: bool):
         if is_saved_mode:
             self.cmd_stack.setCurrentIndex(1)
-            self.bottom_left_stack.setCurrentIndex(1)
+            self.payload_button.setVisible(False)
+            self.info_cmd_label.setVisible(True)
             self.save_button.setVisible(False)
             self.edit_patterns_button.setVisible(True)
         else:
             self.cmd_stack.setCurrentIndex(0)
-            self.bottom_left_stack.setCurrentIndex(0)
+            self.payload_button.setVisible(True)
+            self.info_cmd_label.setVisible(False)
             self.save_button.setVisible(True)
             self.edit_patterns_button.setVisible(False)
             self.info_cmd_label.setText("")
@@ -256,18 +259,18 @@ class SendCmdView(QWidget):
         self.pattern_combobox.blockSignals(False)
 
     def set_info_cmd_text(self, cmd_hex: str):
-        self.info_cmd_label.setText(f"Команда: 0x{cmd_hex.upper()} |")
+        self.info_cmd_label.setText(f"Команда: 0x{cmd_hex.upper()}")
 
     def show_save_button(self, visible: bool):
         self.save_button.setVisible(visible)
 
     def update_payload_status(self, bytes_count: int):
         if bytes_count > 0:
-            self.payload_status_label.setText(f"Прикреплено: {bytes_count} байт")
+            self.payload_status_label.setText(f"Данные: {bytes_count} байт")
             self.payload_status_label.setStyleSheet("color: #008000; font-weight: bold; font-size: 11px;")
             self.payload_edit_button.setVisible(True)
         else:
-            self.payload_status_label.setText("Данные отсутствуют (0 байт)")
+            self.payload_status_label.setText("Нет данных")
             self.payload_status_label.setStyleSheet("color: #777777; font-style: italic; font-size: 11px;")
             self.payload_edit_button.setVisible(False)
 
