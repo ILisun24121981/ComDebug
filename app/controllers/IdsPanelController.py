@@ -1,13 +1,12 @@
+# === ФАЙЛ: app/controllers/IdsPanelController.py (ЦЕЛИКОМ) ===
 import random
-from typing import List, Dict, Any
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 
 class IdsPanelController(QObject):
     """
     Контроллер для комплексной панели управления IDS (MVC).
-    ПОЛНОСТЬЮ ЗАЩИЩЕН ОТ КРЭША (0xC0000409): исправлено извлечение имени параметра КНБК.
-    Интерфейс всегда остается активным для отправки частых запросов.
+    Обеспечивает пакетное переключение жирных рамок 3px для всей пачки телеметрии.
     """
     request_changed = pyqtSignal(int, bool)
     send_request_signal = pyqtSignal(list)
@@ -31,17 +30,17 @@ class IdsPanelController(QObject):
         self.request_changed.emit(param_id, is_checked)
 
     def handle_query_execution(self):
-        """Событие: Нажата кнопка 'Послать запрос'."""
         active_ids = self.view.get_selected_param_ids()
 
         if not active_ids:
-            self.view.set_session_status("Предупреждение: выберите параметры КНБК!", "#D9534F", font_bold=True)
+            self.view.set_session_status(
+                "Предупреждение: выберите параметры КНБК!", "#D9534F", font_bold=True
+            )
             return
 
         for param_id, cb in self.view.ids_checkboxes.items():
             cb_text = cb.text()
             if " (0x" in cb_text:
-                # ИСПРАВЛЕНО БЕЗОПАСНО: Берем строго [0] элемент после сплита и только затем вызываем .strip()
                 param_name = cb_text.split(" (0x")[0].strip()
                 if cb.isChecked():
                     self.view.update_value(param_name, "...")
@@ -49,17 +48,17 @@ class IdsPanelController(QObject):
                     current_text = self.view.ids_value_labels.get(param_name).text()
                     self.view.update_value(param_name, current_text)
 
-        self.view.set_session_status("Опрос прибора активен, ожидание ответа...", "#0056B3", font_bold=False)
-
-        # Передаем управление в центральный оркестратор
+        self.view.set_session_status(
+            "Опрос прибора активен, ожидание ответа...", "#0056B3", font_bold=False
+        )
         self.send_request_signal.emit(active_ids)
 
     def handle_pattern_save_execution(self):
-        """Событие: Нажата кнопка 'Сохранить запрос'."""
         active_ids = self.view.get_selected_param_ids()
         if not active_ids:
-            self.view.set_session_status("Предупреждение: выберите параметры для сохранения!", "#D9534F",
-                                         font_bold=True)
+            self.view.set_session_status(
+                "Предупреждение: выберите параметры для сохранения!", "#D9534F", font_bold=True
+            )
             return
         self.save_pattern_requested_signal.emit(active_ids)
 
@@ -73,8 +72,16 @@ class IdsPanelController(QObject):
         current_packet_color = random.choice(available_colors)
         self.last_used_color = current_packet_color
 
+        # ИСПРАВЛЕНО: Перед разбором цикла ОДИН раз тушим весь старый пакет до 1px
+        self.view.clear_previous_packet_borders()
+
+        # Теперь заливаем всю новую пачку жирным контуром 3px в один цвет
         for param_name, value in parsed_data.items():
-            val_to_display = value if isinstance(value, (tuple, list)) and len(value) > 0 else value
+            if isinstance(value, (tuple, list)) and len(value) > 0:
+                val_to_display = value[0]
+            else:
+                val_to_display = value
+
             if isinstance(val_to_display, bytes):
                 try:
                     display_str = val_to_display.decode('utf-8', errors='ignore').strip()
@@ -83,7 +90,11 @@ class IdsPanelController(QObject):
             else:
                 display_str = str(val_to_display)
 
-            self.view.update_value_with_border(param_name.strip(), display_str, current_packet_color)
+            self.view.update_value_with_border(
+                param_name.strip(), display_str, current_packet_color
+            )
 
         self.view.set_interactive_state(True)
-        self.view.set_session_status("Данные телеметрии успешно обновлены", "#008000", font_bold=True)
+        self.view.set_session_status(
+            "Данные телеметрии успешно обновлены", "#008000", font_bold=True
+        )
