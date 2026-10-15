@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="1">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Финальный вид SendCmdView">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/SendCmdView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/SendCmdView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -173,7 +173,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792049680048</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Финальный вид SendCmdView">
+      <option name="closed" value="true" />
+      <created>1792055327452</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1792055327452</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -191,7 +199,8 @@
     <MESSAGE value="изменил функционал добавил редактор сохраненных команд" />
     <MESSAGE value="редактировал логер" />
     <MESSAGE value="1" />
-    <option name="LAST_COMMIT_MESSAGE" value="1" />
+    <MESSAGE value="Финальный вид SendCmdView" />
+    <option name="LAST_COMMIT_MESSAGE" value="Финальный вид SendCmdView" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
