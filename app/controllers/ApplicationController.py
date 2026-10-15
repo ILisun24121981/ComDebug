@@ -124,13 +124,11 @@ class ApplicationController(QObject):
         self.main_window.send_cmd_view.set_addresses_container_visible(False)
         self.main_window.send_cmd_view.set_radio_layout_visible(False)
 
-        # 1. Принудительная изоляция сигналов перед удалением панели
         try:
             self.data_parsed_signal.disconnect()
         except TypeError:
             pass
 
-        # 2. Полностью разрываем связи левой панели IDS с оркестратором
         if self.ids_panel_controller:
             try:
                 self.ids_panel_controller.send_request_signal.disconnect(
@@ -153,7 +151,6 @@ class ApplicationController(QObject):
                 except TypeError:
                     pass
 
-        # 3. Обнуляем ссылки на контроллеры КНБК ДО перерисовки интерфейса!
         self.ids_panel_controller = None
         self.ids_protocol_instance = None
         self.gels_protocol_instance = None
@@ -161,7 +158,6 @@ class ApplicationController(QObject):
         self.rx_buffer.clear()
         self.is_transaction_active = False
 
-        # 4. Безопасно переключаем заглушку без удаления элементов в C++
         self.main_window.show_default_left_interface()
         self.port_logger_controller.write_log(
             "sys", "--- Физический канал связи закрыт пользователем ---"
@@ -290,7 +286,7 @@ class ApplicationController(QObject):
                     if self.auto_polling_controller.is_running:
                         self.auto_polling_controller.schedule_next_step()
 
-# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 3 ИЗ 3) ===
+    # === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 3 ИЗ 3) ===
 
     def handle_manual_command_dispatch(self, dst_addr: int, src_addr: int, command_code: int, payload: bytes):
         if not self.com_port_controller.model.is_connected():
@@ -318,7 +314,8 @@ class ApplicationController(QObject):
         addrs = self.main_window.send_cmd_view.get_addresses_values()
         try:
             dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
-        except ValueError: dst_addr, src_addr = 0x29, 0x00
+        except ValueError:
+            dst_addr, src_addr = 0x29, 0x00
         proto = self.com_port_controller.active_protocol_name
         if proto == "IDS" and self.ids_protocol_instance:
             full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
@@ -330,10 +327,17 @@ class ApplicationController(QObject):
             else:
                 tmp_aps = ApsProtocol()
                 full_packet = tmp_aps.pack_message(dst_addr, src_addr, command_code, payload)
-        else: full_packet = struct.pack("BB", dst_addr, src_addr) + payload
+        else:
+            full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
         packet_hex_string = full_packet.hex(" ").upper()
         save_view = SaveCmdPatternView(formatted_packet_hex=packet_hex_string, parent=self.main_window)
+
+        # Автоматически вычисляем и подставляем следующее Temp имя для пульта
+        default_cmd_name = self.patterns_manager.generate_next_default_cmd_name(proto)
+        save_view.name_input.setText(default_cmd_name)
+        save_view.name_input.selectAll()
+
         save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         if save_controller.execute_save(proto, full_packet):
             self.send_cmd_controller.configure_for_protocol(proto)
@@ -341,14 +345,22 @@ class ApplicationController(QObject):
     def process_ids_panel_pattern_save(self, selected_ids: list):
         if not self.ids_protocol_instance: return
         addrs = self.main_window.send_cmd_view.get_addresses_values()
-        try: dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
-        except ValueError: dst_addr, src_addr = 0x29, 0x00
+        try:
+            dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
+        except ValueError:
+            dst_addr, src_addr = 0x29, 0x00
         payload = bytearray([len(selected_ids)])
         for param_id in selected_ids: payload.append(param_id)
         full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, 0x11, bytes(payload))
         save_view = SaveCmdPatternView(formatted_packet_hex=full_packet.hex(" ").upper(), parent=self.main_window)
-        save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         proto = self.com_port_controller.active_protocol_name
+
+        # Подставляем инкрементируемый дефолт TempX при сохранении набора IDS-панели
+        default_cmd_name = self.patterns_manager.generate_next_default_cmd_name(proto)
+        save_view.name_input.setText(default_cmd_name)
+        save_view.name_input.selectAll()
+
+        save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         if save_controller.execute_save(proto, full_packet):
             self.send_cmd_controller.configure_for_protocol(proto)
 
@@ -358,8 +370,10 @@ class ApplicationController(QObject):
             return
         if not selected_ids: return
         addrs = self.main_window.send_cmd_view.get_addresses_values()
-        try: dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
-        except ValueError: dst_addr, src_addr = 0x29, 0x00
+        try:
+            dst_addr, src_addr = int(addrs["dst"], 16), int(addrs["src"], 16)
+        except ValueError:
+            dst_addr, src_addr = 0x29, 0x00
         payload = bytearray([len(selected_ids)])
         for param_id in selected_ids: payload.append(param_id)
         full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, 0x11, bytes(payload))
@@ -372,7 +386,6 @@ class ApplicationController(QObject):
         self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
 
     def send_saved_command_by_name(self, pattern_name: str):
-        # МОНУМЕНТАЛЬНЫЙ БАРЬЕР: Изолирует очередь от застрявших QueuedConnection сигналов
         if not self.auto_polling_controller or not self.auto_polling_controller.is_running:
             return
 
@@ -380,35 +393,18 @@ class ApplicationController(QObject):
             self.auto_polling_controller.handle_stop_execution()
             return
         proto_name = self.com_port_controller.active_protocol_name
-
-        if pattern_name.startswith("__DYNAMIC_NEW_LOOP__:"):
+        patterns = self.patterns_manager._read_file(proto_name)
+        raw_data = patterns.get(pattern_name, "")
+        if not raw_data: return
+        if isinstance(raw_data, str):
             try:
-                cmd_hex = pattern_name.split(":")
-                command_code = int(cmd_hex[1], 16)
-                payload = self.auto_polling_controller.current_new_payload_bytes
-                addrs = self.main_window.send_cmd_view.get_addresses_values()
-                dst_addr = int(addrs["dst"], 16)
-                src_addr = int(addrs["src"], 16)
-            except Exception:
-                dst_addr, src_addr, command_code, payload = 0x29, 0x00, 0x00, b""
-
-            if proto_name == "IDS" and self.ids_protocol_instance:
-                full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
-            elif proto_name == "Gels" and self.gels_protocol_instance:
-                full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
-            elif proto_name == "Aps" and self.aps_protocol_instance:
-                full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
-            else:
-                full_packet = struct.pack("BB", dst_addr, src_addr) + payload
+                full_packet = bytes.fromhex(raw_data.replace(" ", ""))
+            except ValueError:
+                return
+        elif isinstance(raw_data, (bytes, bytearray)):
+            full_packet = bytes(raw_data)
         else:
-            patterns = self.patterns_manager._read_file(proto_name)
-            raw_data = patterns.get(pattern_name, "")
-            if not raw_data: return
-            if isinstance(raw_data, str):
-                try: full_packet = bytes.fromhex(raw_data.replace(" ", ""))
-                except ValueError: return
-            elif isinstance(raw_data, (bytes, bytearray)): full_packet = bytes(raw_data)
-            else: return
+            return
 
         if self.is_transaction_active:
             self.port_logger_controller.write_log("err", "ОТВЕТ НЕ ПОЛУЧЕН ДО ОТПРАВКИ СЛЕДУЮЩЕГО ЗАПРОСА")

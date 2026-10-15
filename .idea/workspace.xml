@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Автоматический опрос -корявая версия">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Автоматический опрос -поправленный">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/CmdPatternsManager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -207,7 +208,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792086732969</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Автоматический опрос -поправленный">
+      <option name="closed" value="true" />
+      <created>1792087086036</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1792087086036</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -229,7 +238,8 @@
     <MESSAGE value="Корректировки MainView" />
     <MESSAGE value="Автоматический опрос" />
     <MESSAGE value="Автоматический опрос -корявая версия" />
-    <option name="LAST_COMMIT_MESSAGE" value="Автоматический опрос -корявая версия" />
+    <MESSAGE value="Автоматический опрос -поправленный" />
+    <option name="LAST_COMMIT_MESSAGE" value="Автоматический опрос -поправленный" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -241,12 +251,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
-          <line>56</line>
+          <line>60</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
-          <line>93</line>
+          <line>74</line>
           <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
