@@ -4,15 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="IDSPannel рамка нового пакета более жирная">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="исправления">
+      <change afterPath="$PROJECT_DIR$/app/controllers/SetCmdDataViewController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/controllers/StructuresDisplayController.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/models/CmdViewManager.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/CmdDataSettingView.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/SetCmdDataViewPannel.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/views/StructuresDisplayView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/AutoPollingModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/AutoPollingModel.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/IdsParametersView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsParametersView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/PortLoggerView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/PortLoggerView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,33 +43,35 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.ApplicationController.executor&quot;: &quot;Run&quot;,
-    &quot;Python.AutoPollingController.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.ComPortModel.executor&quot;: &quot;Run&quot;,
-    &quot;Python.IdsProtocol.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.MainWindow.executor&quot;: &quot;Run&quot;,
-    &quot;Python.SendCmdView.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/ILisun/Work/Pycharm/RSS/app/models/protocols&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.jshint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.jshint&quot;: &quot;&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.ApplicationController.executor": "Run",
+    "Python.AutoPollingController.executor": "Debug",
+    "Python.AutoPollingPatternsManager.executor": "Run",
+    "Python.AutoPollingSettingView.executor": "Run",
+    "Python.ComPortModel.executor": "Run",
+    "Python.IdsProtocol.executor": "Debug",
+    "Python.MainWindow.executor": "Run",
+    "Python.SendCmdView.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/ILisun/Work/Pycharm/RSS/app/models/protocols",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.jshint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.jshint": "",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\ILisun\Work\Pycharm\RSS\app\models\protocols" />
@@ -237,7 +244,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792089034838</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="исправления">
+      <option name="closed" value="true" />
+      <created>1792391598971</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1792391598971</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -262,7 +277,8 @@
     <MESSAGE value="Автоматический опрос -поправленный" />
     <MESSAGE value="Добавил логику именования команд по дефолту" />
     <MESSAGE value="IDSPannel рамка нового пакета более жирная" />
-    <option name="LAST_COMMIT_MESSAGE" value="IDSPannel рамка нового пакета более жирная" />
+    <MESSAGE value="исправления" />
+    <option name="LAST_COMMIT_MESSAGE" value="исправления" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -271,16 +287,6 @@
           <url>file://$PROJECT_DIR$/app/models/protocols/IdsProtocol.py</url>
           <line>124</line>
           <option name="timeStamp" value="2" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
-          <line>60</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/app/controllers/AutoPollingController.py</url>
-          <line>74</line>
-          <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

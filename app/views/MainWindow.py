@@ -1,4 +1,4 @@
-# === ФАЙЛ: app/views/MainWindow.py (ЦЕЛИКОМ) ===
+# === ФАЙЛ: app/views/MainWindow.py ===
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel
 )
@@ -46,7 +46,6 @@ class MainWindow(QMainWindow):
         self.send_cmd_view = SendCmdView(parent=self)
         self.left_column.addWidget(self.send_cmd_view)
 
-        # Стартовая инициализация заглушки (она будет жить в макете ВСЕГДА)
         self.left_placeholder = QLabel(
             "Левая колонка\n(Таблицы параметров КНБК / Телеметрия)"
         )
@@ -57,9 +56,21 @@ class MainWindow(QMainWindow):
         )
         self.left_column.addWidget(self.left_placeholder, stretch=1)
 
-        # Интеграция изолированного виджета автоопроса
+        # Панель №1: Управление циклическим автоопросом шины
         self.auto_patterns_view = SetAutoPatternsView(parent=self)
-        self.right_column.addWidget(self.auto_patterns_view)
+
+        # ВНЕДРЕНИЕ Панель №2: Привязка жестких бинарных структур данных (Gels/Aps)
+        from app.views.SetCmdDataViewPannel import SetCmdDataViewPannel
+        self.cmd_data_view_pannel = SetCmdDataViewPannel(parent=self)
+
+        # Объединяющий горизонтальный ряд автоматизации (обе панели строго по 350px)
+        self.automation_row_layout = QHBoxLayout()
+        self.automation_row_layout.setSpacing(10)
+        self.automation_row_layout.addWidget(self.auto_patterns_view)
+        self.automation_row_layout.addWidget(self.cmd_data_view_pannel)
+        self.automation_row_layout.addStretch()
+
+        self.right_column.addLayout(self.automation_row_layout)
 
         self.port_logger_view = PortLoggerView(parent=self)
         self.right_column.addWidget(self.port_logger_view, stretch=1)
@@ -74,25 +85,16 @@ class MainWindow(QMainWindow):
     def show_ids_interface(self, identifiers_map: dict):
         """Переключает левую колонку на отображение интерфейса IDS."""
         self.clear_left_column_content()
-
-        # Скрываем постоянную заглушку вместо её физического удаления
         self.left_placeholder.setVisible(False)
-
         self.ids_panel_view = IdsPanelView(identifiers_map, parent=self)
         self.left_column.addWidget(self.ids_panel_view, stretch=1)
 
     def show_default_left_interface(self):
         """Безопасно возвращает стандартную заглушку на экран."""
         self.clear_left_column_content()
-
-        # Просто делаем постоянную заглушку видимой! Краш 0xC0000409 устранен!
         self.left_placeholder.setVisible(True)
 
     def clear_left_column_content(self):
-        """
-        ИСПРАВЛЕНО: Безопасное удаление динамических панелей КНБК.
-        Удаляет только IdsPanelView, никогда не трогая постоянный left_placeholder.
-        """
         if self.ids_panel_view is not None:
             try:
                 self.left_column.removeWidget(self.ids_panel_view)

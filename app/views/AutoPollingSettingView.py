@@ -1,12 +1,15 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QRadioButton, QSpinBox, QTableWidget, \
-    QTableWidgetItem, QPushButton, QHeaderView, QFrame
-from PyQt6.QtCore import Qt
+# === ФАЙЛ: app/views/AutoPollingSettingView.py (ЧАСТЬ 1 ИЗ 2) ===
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QRadioButton, QSpinBox,
+    QTableWidget, QTableWidgetItem, QPushButton, QHeaderView, QFrame, QWidget
+)
+from PyQt6.QtCore import Qt, pyqtSlot
 
 
 class AutoPollingSettingView(QDialog):
     """
     Модальное окно конфигурации циклического автоматического опроса (PyQt6 View).
-    Полностью очищено от ошибочной рекурсивной строки импорта самого себя.
+    Полностью сохраняет оригинальный дизайн и логику оконного интерфейса КНБК.
     """
 
     def __init__(self, saved_patterns: list[str], current_config: dict, parent=None):
@@ -107,16 +110,24 @@ class AutoPollingSettingView(QDialog):
         self._load_initial_values(current_config)
         self._update_ui_interactive_states()
 
+    # === ФАЙЛ: app/views/AutoPollingSettingView.py (ЧАСТЬ 2 ИЗ 2) ===
+
     def _populate_table_data(self, saved_patterns: list[str], current_config: dict):
+        """Заполняет таблицу, опираясь на факт наличия кодограмм в словаре patterns."""
         self.table.blockSignals(True)
         self.table.setRowCount(len(saved_patterns))
         patterns_meta = current_config.get("patterns", {})
 
         for row, name in enumerate(saved_patterns):
-            meta = patterns_meta.get(name, {})
+            # Проверяем факт наличия кодограммы в прочитанном шаблоне КНБК
+            is_present_in_config = (patterns_meta is not None) and (name in patterns_meta)
+            meta = patterns_meta.get(name, {}) if is_present_in_config else {}
+
+            # Команда активна, если она перечислена и не имеет флага "enabled": false
+            is_checked = is_present_in_config and (meta.get("enabled", True) is not False)
 
             check_item = QTableWidgetItem()
-            check_item.setCheckState(Qt.CheckState.Checked if meta.get("enabled", False) else Qt.CheckState.Unchecked)
+            check_item.setCheckState(Qt.CheckState.Checked if is_checked else Qt.CheckState.Unchecked)
             check_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 0, check_item)
 
@@ -132,10 +143,23 @@ class AutoPollingSettingView(QDialog):
         self.table.blockSignals(False)
 
     def _load_initial_values(self, current_config: dict):
-        mode = current_config.get("mode", "fixed")
-        self.spin_fixed.setValue(current_config.get("global_interval_ms", 2000))
-        self.spin_chain.setValue(current_config.get("chain_delay_ms", 5000))
+        """Безопасно загружает стартовые величины в SpinBox поля с защитой Си-типов."""
+        try:
+            val_fixed = current_config.get("global_interval_ms", 2000)
+            global_int = int(val_fixed) if val_fixed is not None else 2000
+        except (ValueError, TypeError):
+            global_int = 2000
 
+        try:
+            val_chain = current_config.get("chain_delay_ms", 5000)
+            chain_del = int(val_chain) if val_chain is not None else 5000
+        except (ValueError, TypeError):
+            chain_del = 5000
+
+        self.spin_fixed.setValue(global_int)
+        self.spin_chain.setValue(chain_del)
+
+        mode = current_config.get("mode", "fixed")
         if mode == "custom":
             self.radio_individual.setChecked(True)
         elif mode == "chain":
@@ -180,7 +204,7 @@ class AutoPollingSettingView(QDialog):
             check_item = self.table.item(row, 0)
             is_enabled = False
             if check_item:
-                is_enabled = (check_item.checkState().value == Qt.CheckState.Checked.value)
+                is_enabled = (check_item.checkState() == Qt.CheckState.Checked)
 
             interval_item = self.table.item(row, 2)
             try:

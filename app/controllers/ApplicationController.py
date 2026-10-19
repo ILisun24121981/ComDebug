@@ -1,4 +1,4 @@
-# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 1 ИЗ 3) ===
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 1 ИЗ 7) ===
 import struct
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer, Qt
@@ -16,6 +16,9 @@ from app.controllers.IdsPanelController import IdsPanelController
 from app.controllers.PortLoggerController import PortLoggerController
 from app.controllers.SendCmdController import SendCmdController
 from app.controllers.SaveCmdPatternController import SaveCmdPatternController
+
+# ВНЕДРЕНИЕ: Импортируем контроллер управления структурами данных
+from app.controllers.SetCmdDataViewController import SetCmdDataViewController
 
 
 class ApplicationController(QObject):
@@ -36,6 +39,7 @@ class ApplicationController(QObject):
         self.global_timeout_timer.timeout.connect(
             self._handle_global_transaction_timeout_event
         )
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 2 ИЗ 7) ===
 
         self.com_port_controller = ComPortController(
             config_manager=self.config_manager,
@@ -73,6 +77,15 @@ class ApplicationController(QObject):
             view=self.main_window.auto_patterns_view,
             auto_polling_controller=self.auto_polling_controller
         )
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 3 ИЗ 7) ===
+
+        # ВНЕДРЕНИЕ: Создаем контроллер привязки бинарных XML/JSON структур отображения
+        self.set_cmd_data_view_controller = SetCmdDataViewController(
+            view=self.main_window.cmd_data_view_pannel,
+            config_manager=self.config_manager,
+            patterns_manager=self.patterns_manager,
+            main_controller=self
+        )
 
         self.auto_polling_controller.send_command_signal.connect(
             self.handle_auto_polling_dispatch,
@@ -85,6 +98,9 @@ class ApplicationController(QObject):
         self.com_port_controller.model.data_received.connect(self.handle_incoming_bytes)
         self.com_port_controller.model.error_occurred.connect(self.handle_hardware_connection_error)
 
+        # ВНЕДРЕНИЕ: Регистрируем ссылку на корневой оркестратор для диалоговых валидаторов длин
+        self.main_window.root_controller = self
+
     def handle_session_start(self, protocol_name: str):
         self.rx_buffer.clear()
         self.is_transaction_active = False
@@ -94,8 +110,11 @@ class ApplicationController(QObject):
         )
         self.send_cmd_controller.configure_for_protocol(protocol_name)
 
-        # Передаем имя активного прибора КНБК в контроллер автоопроса для загрузки списков
         self.set_auto_patterns_controller.configure_for_protocol(protocol_name)
+
+        # ВНЕДРЕНИЕ: Передаем имя активного протокола шины в панель отображения данных
+        self.set_cmd_data_view_controller.configure_for_protocol(protocol_name)
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 4 ИЗ 7) ===
 
         if protocol_name == "IDS":
             ids_map = self.config_manager.load_ids_identifiers()
@@ -114,8 +133,6 @@ class ApplicationController(QObject):
         elif protocol_name == "Aps":
             self.aps_protocol_instance = ApsProtocol()
 
-# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 2 ИЗ 3) ===
-
     def handle_session_stop(self):
         """Вызывается при штатном закрытии физического COM-порта пользователем."""
         self.auto_polling_controller.handle_stop_execution()
@@ -128,6 +145,7 @@ class ApplicationController(QObject):
             self.data_parsed_signal.disconnect()
         except TypeError:
             pass
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 5 ИЗ 7) ===
 
         if self.ids_panel_controller:
             try:
@@ -162,6 +180,7 @@ class ApplicationController(QObject):
         self.port_logger_controller.write_log(
             "sys", "--- Физический канал связи закрыт пользователем ---"
         )
+# === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 6 ИЗ 7) ===
 
     @pyqtSlot(str)
     def handle_hardware_connection_error(self, reason_text: str):
@@ -213,6 +232,8 @@ class ApplicationController(QObject):
 
         self.main_window.show_default_left_interface()
         self.com_port_controller.model.close_port()
+
+    # === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 7.1 ИЗ 7) ===
 
     def _start_global_timeout_timer(self):
         self.global_timeout_timer.stop()
@@ -269,8 +290,32 @@ class ApplicationController(QObject):
                 if frame.get("is_valid", False):
                     self.is_transaction_active = False
                     self.global_timeout_timer.stop()
+
+                    sent_cmd = 0x00
+                    if self.auto_polling_controller.is_running:
+                        cmd_name = self.auto_polling_controller.last_dispatched_command_name
+                        print(f"[TRACE-AppController] Автоопрос активен. Команда: '{cmd_name}'")
+                        if cmd_name:
+                            frame_data = self.patterns_manager.extract_pattern_data(active_proto, cmd_name)
+                            sent_cmd = frame_data.get("cmd_code", 0x00)
+                    else:
+                        sent_cmd = self.send_cmd_controller.current_cmd_code
+                        print(f"[TRACE-AppController] Ручной пуск. Код: 0x{sent_cmd:02X}")
+
+                    current_mapping_name = self.main_window.cmd_data_view_pannel.combo_patterns.currentText()
+                    print(
+                        f"[TRACE-AppController] Передача бинарного кадра Gels в StructuresDisplayController. Шаблон: '{current_mapping_name}'")
+
+                    self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+                        active_proto=active_proto,
+                        current_pattern_name=current_mapping_name,
+                        command_code=sent_cmd,
+                        payload_bytes=frame.get("payload", b"")
+                    )
+
                     if self.auto_polling_controller.is_running:
                         self.auto_polling_controller.schedule_next_step()
+        # === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 7.2 ИЗ 7) ===
 
         elif active_proto == "Aps" and self.aps_protocol_instance:
             while True:
@@ -283,10 +328,31 @@ class ApplicationController(QObject):
                 if frame.get("is_valid", False):
                     self.is_transaction_active = False
                     self.global_timeout_timer.stop()
+
+                    sent_cmd = 0x00
+                    if self.auto_polling_controller.is_running:
+                        cmd_name = self.auto_polling_controller.last_dispatched_command_name
+                        print(f"[TRACE-AppController] Автоопрос активен. Команда: '{cmd_name}'")
+                        if cmd_name:
+                            frame_data = self.patterns_manager.extract_pattern_data(active_proto, cmd_name)
+                            sent_cmd = frame_data.get("cmd_code", 0x00)
+                    else:
+                        sent_cmd = self.send_cmd_controller.current_cmd_code
+                        print(f"[TRACE-AppController] Ручной пуск. Код: 0x{sent_cmd:02X}")
+
+                    current_mapping_name = self.main_window.cmd_data_view_pannel.combo_patterns.currentText()
+                    print(
+                        f"[TRACE-AppController] Передача бинарного кадра Aps в StructuresDisplayController. Шаблон: '{current_mapping_name}'")
+
+                    self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+                        active_proto=active_proto,
+                        current_pattern_name=current_mapping_name,
+                        command_code=sent_cmd,
+                        payload_bytes=frame.get("payload", b"")
+                    )
+
                     if self.auto_polling_controller.is_running:
                         self.auto_polling_controller.schedule_next_step()
-
-    # === ФАЙЛ: app/controllers/ApplicationController.py (ЧАСТЬ 3 ИЗ 3) ===
 
     def handle_manual_command_dispatch(self, dst_addr: int, src_addr: int, command_code: int, payload: bytes):
         if not self.com_port_controller.model.is_connected():
@@ -333,7 +399,6 @@ class ApplicationController(QObject):
         packet_hex_string = full_packet.hex(" ").upper()
         save_view = SaveCmdPatternView(formatted_packet_hex=packet_hex_string, parent=self.main_window)
 
-        # Автоматически вычисляем и подставляем следующее Temp имя для пульта
         default_cmd_name = self.patterns_manager.generate_next_default_cmd_name(proto)
         save_view.name_input.setText(default_cmd_name)
         save_view.name_input.selectAll()
@@ -355,7 +420,6 @@ class ApplicationController(QObject):
         save_view = SaveCmdPatternView(formatted_packet_hex=full_packet.hex(" ").upper(), parent=self.main_window)
         proto = self.com_port_controller.active_protocol_name
 
-        # Подставляем инкрементируемый дефолт TempX при сохранении набора IDS-панели
         default_cmd_name = self.patterns_manager.generate_next_default_cmd_name(proto)
         save_view.name_input.setText(default_cmd_name)
         save_view.name_input.selectAll()

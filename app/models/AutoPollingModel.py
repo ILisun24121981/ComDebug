@@ -25,19 +25,22 @@ class AutoPollingModel:
         self.chain_delay_ms = chain_del
         self.patterns_config = config
 
-    def get_active_polling_queue(self) -> List[Dict[str, Any]]:
+    def get_active_polling_queue(self) -> list:
         """
-        Возвращает отфильтрованный список активных команд для оркестратора циклов.
+        Формирует и возвращает список активных команд для циклического опроса КНБК.
+        СИНХРОНИЗИРОВАНО: Команда опрашивается, если она перечислена в patterns_config
+        и у неё не выставлен явный старый флаг "enabled": false.
         """
         queue = []
-        # ИСПРАВЛЕНО: Безопасный проход по конфигурации с жесткой фильтрацией булевых типов (is True)
-        if not self.patterns_config:
+        if not self.patterns_config or not isinstance(self.patterns_config, dict):
             return queue
 
-        for name, meta in self.patterns_config.items():
-            if meta and meta.get("enabled", False) is True:
-                queue.append({
-                    "name": name,
-                    "interval_ms": meta.get("interval_ms", self.global_interval_ms)
-                })
+        for cmd_name, cmd_meta in self.patterns_config.items():
+            if isinstance(cmd_meta, dict):
+                # Если в старых логах есть "enabled": false — пропускаем, иначе — берем в опрос
+                if cmd_meta.get("enabled", True) is not False:
+                    queue.append({
+                        "name": cmd_name,
+                        "interval_ms": cmd_meta.get("interval_ms", 2000)
+                    })
         return queue

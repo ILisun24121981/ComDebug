@@ -1,4 +1,4 @@
-# === ФАЙЛ: app/controllers/AutoPollingController.py (ЦЕЛИКОМ) ===
+# === ФАЙЛ: app/controllers/AutoPollingController.py ===
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 from app.views.AutoPollingSettingView import AutoPollingSettingView
 from app.models.AutoPollingPatternsManager import AutoPollingPatternsManager
@@ -22,8 +22,8 @@ class AutoPollingController(QObject):
         self.current_index = 0
         self.is_running = False
 
-        # ИСПРАВЛЕНО: Убраны привязки старых сигналов кнопок главного окна.
-        # Все клики теперь делегируются через SetAutoPatternsController.
+        # ВНЕДРЕНИЕ: Переменная фиксации имени команды для межпотокового декомпозитора
+        self.last_dispatched_command_name = ""
 
     def execute_polling_configuration_dialog(self) -> bool:
         """Открывает окно настройки и возвращает результат закрытия."""
@@ -40,7 +40,6 @@ class AutoPollingController(QObject):
             "patterns": self.model.patterns_config
         }
 
-        # Диалог привязан к MainWindow (self.view) для изоляции памяти
         dialog = AutoPollingSettingView(
             saved_patterns, current_config, parent=self.view
         )
@@ -72,8 +71,8 @@ class AutoPollingController(QObject):
 
         self.is_running = True
         self.current_index = 0
+        self.last_dispatched_command_name = ""
 
-        # Транслируем запуск UI черезMainWindow в SetAutoPatternsView
         self.view.set_auto_polling_panel_running_state(True)
         print("[AutoPolling] Фоновый опрос запущен.")
         QTimer.singleShot(10, self._execute_current_step)
@@ -82,6 +81,11 @@ class AutoPollingController(QObject):
         if not self.is_running or not self.execution_queue:
             return
         cmd_meta = self.execution_queue[self.current_index]
+
+        # ВНЕДРЕНИЕ: Намертво фиксируем имя команды строго перед выстрелом сигнала в порт
+        self.last_dispatched_command_name = cmd_meta["name"]
+        print(f"[TRACE-AutoPolling] Фиксация отправляемой команды: '{self.last_dispatched_command_name}'")
+
         self.send_command_signal.emit(cmd_meta["name"])
 
     def schedule_next_step(self):
