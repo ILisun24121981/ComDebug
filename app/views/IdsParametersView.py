@@ -28,7 +28,7 @@ class IdsParametersView(QWidget):
         self.grid.setSpacing(10)
         self.grid.setContentsMargins(5, 5, 5, 5)
 
-        label_req = QLabel("Запрос (Параметр КНБК)")
+        label_req = QLabel("Запрашиваемый (Параметр)")
         label_req.setStyleSheet("font-weight: bold; color: #333333;")
         label_resp = QLabel("Ответ")
         label_resp.setStyleSheet("font-weight: bold; color: #333333;")

@@ -34,7 +34,7 @@ class IdsPanelController(QObject):
 
         if not active_ids:
             self.view.set_session_status(
-                "Предупреждение: выберите параметры КНБК!", "#D9534F", font_bold=True
+                "Предупреждение: выберите параметры!", "#D9534F", font_bold=True
             )
             return
 
@@ -64,7 +64,7 @@ class IdsPanelController(QObject):
 
     @pyqtSlot(dict)
     def update_telemetry_data(self, parsed_data: dict):
-        """Слот: Принимает бинарный ответ от КНБК, пишет физические величины."""
+        """Слот: Принимает бинарный ответ, пишет физические величины."""
         if not parsed_data:
             return
 

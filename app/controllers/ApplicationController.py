@@ -228,7 +228,7 @@ class ApplicationController(QObject):
                 self.ids_panel_controller.view.set_session_status(
                     "Таймаут ответа шины", "#D9534F", font_bold=True
                 )
-            self.port_logger_controller.write_log("err", "Таймаут ответа КНБК (1500 мс)")
+            self.port_logger_controller.write_log("err", "Таймаут ответа (1500 мс)")
             if self.auto_polling_controller.is_running:
                 self.auto_polling_controller.schedule_next_step()
 

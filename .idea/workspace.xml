@@ -4,10 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Добавил логику именования команд по дефолту">
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="IDSPannel рамка нового пакета более жирная">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/IdsPanelController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/IdsPanelView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsPanelView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/IdsParametersView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/IdsParametersView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/PortLoggerView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/PortLoggerView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,33 +38,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.ApplicationController.executor": "Run",
-    "Python.AutoPollingController.executor": "Debug",
-    "Python.ComPortModel.executor": "Run",
-    "Python.IdsProtocol.executor": "Debug",
-    "Python.MainWindow.executor": "Run",
-    "Python.SendCmdView.executor": "Run",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/ILisun/Work/Pycharm/RSS/app/models/protocols",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.jshint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.jshint": "",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.ApplicationController.executor&quot;: &quot;Run&quot;,
+    &quot;Python.AutoPollingController.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.ComPortModel.executor&quot;: &quot;Run&quot;,
+    &quot;Python.IdsProtocol.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.MainWindow.executor&quot;: &quot;Run&quot;,
+    &quot;Python.SendCmdView.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/ILisun/Work/Pycharm/RSS/app/models/protocols&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.jshint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.jshint&quot;: &quot;&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\ILisun\Work\Pycharm\RSS\app\models\protocols" />
@@ -224,7 +229,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792088105104</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="IDSPannel рамка нового пакета более жирная">
+      <option name="closed" value="true" />
+      <created>1792089034838</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1792089034838</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -248,7 +261,8 @@
     <MESSAGE value="Автоматический опрос -корявая версия" />
     <MESSAGE value="Автоматический опрос -поправленный" />
     <MESSAGE value="Добавил логику именования команд по дефолту" />
-    <option name="LAST_COMMIT_MESSAGE" value="Добавил логику именования команд по дефолту" />
+    <MESSAGE value="IDSPannel рамка нового пакета более жирная" />
+    <option name="LAST_COMMIT_MESSAGE" value="IDSPannel рамка нового пакета более жирная" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

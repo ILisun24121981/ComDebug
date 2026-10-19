@@ -75,7 +75,7 @@ class AutoPollingController(QObject):
 
         # Транслируем запуск UI черезMainWindow в SetAutoPatternsView
         self.view.set_auto_polling_panel_running_state(True)
-        print("[AutoPolling] Фоновый опрос КНБК запущен.")
+        print("[AutoPolling] Фоновый опрос запущен.")
         QTimer.singleShot(10, self._execute_current_step)
 
     def _execute_current_step(self):

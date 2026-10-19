@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Тестировщик протоколов КНБК")
+        self.setWindowTitle("Тестировщик протоколов")
         self.resize(1150, 650)
         self.setMinimumSize(900, 500)
 

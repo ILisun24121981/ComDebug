@@ -12,7 +12,7 @@ class AutoPollingSettingView(QDialog):
     def __init__(self, saved_patterns: list[str], current_config: dict, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Настройка automatic опроса КНБК")
+        self.setWindowTitle("Настройка автоматического опроса")
         self.setFixedSize(480, 420)
         self.setModal(True)
 
