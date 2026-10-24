@@ -46,17 +46,21 @@ class SetAutoPatternsController(QObject):
     # === ФАЙЛ: app/controllers/SetAutoPatternsController.py (ЧАСТЬ 2 ИЗ 3) ===
 
     def refresh_patterns_list(self):
-        """Выгружает названия шаблонов из JSON и загружает DefaultPattern или строго последний набор."""
-        print("[TRACE-AutoPatterns] Вызов менеджера для чтения списка имен шаблонов из JSON...")
+        """
+        Выгружает названия шаблонов из JSON и загружает DefaultPattern или строго последний набор.
+        СИНХРОНИЗИРОВАНО: Применяется при каждом переключении протоколов на физическом COM-порту.
+        """
+        print(f"\n[TRACE-AutoPatterns] Сброс и обновление списков для активного протокола: '{self.active_protocol}'")
         manager = self.auto_ctrl.auto_patterns_manager
 
-        # Вычитываем сырой корневой словарь файла, чтобы вытащить служебные поля метаданных
+        # Вычитываем сырой корневой словарь JSON-файла для нового протокола
         raw_file_data = manager._read_file(self.active_protocol)
 
         # Получаем чистый список имен шаблонов (исключая служебные поля метаданных)
         names = [k for l in [manager.load_pattern_names(self.active_protocol)] for k in l if k != "DefaultPattern"]
-        print(f"[TRACE-AutoPatterns] Обнаруженные шаблоны на диске для {self.active_protocol}: {names}")
+        print(f"[TRACE-AutoPatterns] Шаблоны, найденные на диске для {self.active_protocol}: {names}")
 
+        # Блокируем шторм графических сигналов на время полной перестройки комбобокса
         self.view.combo_patterns.blockSignals(True)
         self.view.combo_patterns.clear()
         if names:
@@ -64,37 +68,38 @@ class SetAutoPatternsController(QObject):
         self.view.combo_patterns.blockSignals(False)
 
         if not names:
-            print("[TRACE-AutoPolling] Шаблоны отсутствуют. Переход в стартовое пустое состояние.")
+            print(f"[TRACE-AutoPatterns] Шаблоны для протокола {self.active_protocol} отсутствуют. Очистка модели.")
             self.view.show_initial_empty_state()
             self.auto_ctrl.model.current_pattern_name = ""
+            # Очищаем модель, чтобы старый протокол не оставался в памяти
+            self.auto_ctrl.model.update_configuration(mode="fixed", global_int=2000, chain_del=5000, config={})
         else:
             if self.view.radio_saved.isChecked():
-                print("[TRACE-AutoPatterns] Режим 'Сохраненный' активен. Переходим к сквозному выбору...")
+                print("[TRACE-AutoPatterns] Режим 'Сохраненный' активен. Переходим к сквозной инициализации...")
                 self.view.set_saved_mode_view()
 
-                # Прецизионная MVC-логика выбора стартового шаблона при подключении
-                active_name = getattr(self.auto_ctrl.model, "current_pattern_name", "")
+                # Принудительно затираем старое имя в модели, чтобы запустить чистый поиск по новому файлу
+                self.auto_ctrl.model.current_pattern_name = ""
 
-                if active_name in names:
-                    target_name = active_name
+                # 1. Сначала проверяем наличие сохраненной переменной DefaultPattern в метаданных файла нового протокола
+                default_from_file = raw_file_data.get("DefaultPattern", "")
+                if default_from_file and default_from_file in names:
+                    target_name = default_from_file
+                    print(
+                        f"[TRACE-AutoPatterns] Найдена переменная DefaultPattern для {self.active_protocol}. Выбор: '{target_name}'")
                 else:
-                    # 1. Сначала проверяем наличие сохраненной переменной DefaultPattern в метаданных файла
-                    default_from_file = raw_file_data.get("DefaultPattern", "")
-                    if default_from_file and default_from_file in names:
-                        target_name = default_from_file
-                        print(f"[TRACE-AutoPatterns] Найдена переменная DefaultPattern. Авто-выбор: '{target_name}'")
-                    else:
-                        # 2. Если переменной нет, берем СТРОГО самый последний шаблон из списка на диске
-                        target_name = names[-1]
-                        print(
-                            f"[TRACE-AutoPatterns] Переменная DefaultPattern отсутствует. Авто-выбор СТРОГО ПОСЛЕДНЕГО набора: '{target_name}'")
+                    # 2. Если переменной нет, берем СТРОГО самый последний шаблон из списка на диске нового протокола
+                    target_name = names[-1]
+                    print(
+                        f"[TRACE-AutoPatterns] DefaultPattern отсутствует. Авто-выбор ПОСЛЕДНЕГО набора: '{target_name}'")
 
+                # Синхронизируем текст выпадающего списка в интерфейсе
                 self.view.combo_patterns.blockSignals(True)
                 self.view.combo_patterns.setCurrentText(target_name)
                 self.view.combo_patterns.blockSignals(False)
 
-                # Временно принудительно открываем шлюз блокировщика радиокнопок
-                # для выполнения первоначального наполнения модели конфигурацией КНБК
+                # СКВОЗНОЙ ХУК: Временно открываем блокировщик радио-хэндлеров, чтобы гарантированно
+                # прописать параметры выбранного шаблона нового протокола в модель AutoPollingModel
                 old_block_state = self._block_radio_handler
                 self._block_radio_handler = False
                 try:
@@ -302,7 +307,7 @@ class SetAutoPatternsController(QObject):
                 file_data["DefaultPattern"] = active_template_name
                 manager._write_file(self.active_protocol, file_data)
                 print(
-                    f"[TRACE-AutoPatterns] Переменная 'DefaultPattern': '{active_template_name}' успешно зафиксирована в JSON файла {self.active_protocol}.")
+                    f"[TRACE-AutoPatterns] Переменная 'DefaultPattern': '{active_template_name}' успешно зафиксирована.")
             except Exception as e:
                 print(f"[TRACE-AutoPatterns] Не удалось сохранить DefaultPattern в метаданные: {e}")
 

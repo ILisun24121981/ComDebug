@@ -1,12 +1,13 @@
-# === ФАЙЛ: app/controllers/StructuresDisplayController.py ===
+# === ФАЙЛ: app/controllers/StructuresDisplayController.py (ЧАСТЬ 1 ИЗ 2) ===
 import struct
+import re
 from PyQt6.QtCore import QObject, pyqtSignal
 
 
 class StructuresDisplayController(QObject):
     """
-    Выделенный контроллер декомпозиции бинарных структур данных (MVC Controller).
-    Потокобезопасно транслирует распакованные величины КНБК через Qt-сигналы.
+    Выделенный контроллер декомпозиции бинарных структур данных Си (MVC Controller).
+    Потокобезопасно транслирует распакованные Си-величины КНБК через Qt-сигналы.
     """
     data_unpacked_signal = pyqtSignal(str, str, int)
 
@@ -15,6 +16,20 @@ class StructuresDisplayController(QObject):
         self.cmd_view_manager = cmd_view_manager
         self.patterns_manager = patterns_manager
         self.live_display_dialog = None
+
+        # Маппинг стандартных типов данных языка Си в символы struct Python
+        self.c_type_mapping = {
+            "uint32_t": "I", "unsigned int": "I", "unsigned long": "I",
+            "int32_t": "i", "int": "i", "long": "i",
+            "uint16_t": "H", "unsigned short": "H",
+            "int16_t": "h", "short": "h",
+            "uint8_t": "B", "unsigned char": "B",
+            "int8_t": "b", "char": "b", "signed char": "b",
+            "uint64_t": "Q", "unsigned long long": "Q",
+            "int64_t": "q", "long long": "q",
+            "float": "f",
+            "double": "d"
+        }
 
     def set_active_display_dialog(self, dialog):
         """Регистрирует текущую активную форму вывода."""
@@ -28,13 +43,12 @@ class StructuresDisplayController(QObject):
 
     def process_and_unpack_payload(self, active_proto: str, current_pattern_name: str, command_code: int,
                                    payload_bytes: bytes):
-        """Динамически распаковывает payload и генерирует безопасный сигнал для GUI."""
+        """Динамически распаковывает payload Си-структур и генерирует безопасный сигнал для GUI."""
         if not self.live_display_dialog or not self.live_display_dialog.isVisible():
             return
         if not current_pattern_name:
             return
 
-        # 1. Извлекаем маппинги текущего выбранного шаблона
         config = self.cmd_view_manager.load_pattern_config(active_proto, current_pattern_name)
         active_mappings = config.get("mappings", {})
 
@@ -59,55 +73,94 @@ class StructuresDisplayController(QObject):
         struct_meta = available_views[struct_name]
         fields_list = struct_meta.get("fields", [])
 
-        # 2. Выбор порядка байт КНБК КНБК
+        # Выбор порядка байт КНБК (Эндианность)
         byte_order_marker = ">" if active_proto == "Aps" else "<"
 
-        # Полная таблица типов данных промышленной телеметрии (включая биты)
-        type_mapping = {
-            "uint32": "I", "int32": "i",
-            "uint16": "H", "int16": "h",
-            "uint8": "B", "int8": "b",
-            "uint64": "Q", "int64": "q",
-            "float": "f", "double": "d",
-            "3bits": "B", "2bits": "B", "4bits": "B", "1bit": "B"
-        }
+        # Регулярное выражение для поиска произвольных Си-битовых полей, например: "uint8_t:3" или "int:5"
+        bitfield_pattern = re.compile(r"^([^:]+):(\d+)$")
+        # === ФАЙЛ: app/controllers/StructuresDisplayController.py (ЧАСТЬ 2 ИЗ 2) ===
 
-        # 3. Безопасная сборка форматной строки
+        # Проход 1: Анализ структуры и компиляция чистой форматной строки struct
         format_parts = [byte_order_marker]
-        for field in fields_list:
-            # Очищаем строку типа от мусорных спецсимволов и пробелов
-            f_type = str(field.get("type", "uint32")).lower().strip()
+        bit_processing_queue = []  # Список для отложенного побитового разбора
 
-            # Если тип битовый (например '3bits'), вычленяем его базовый контейнер
-            if "bits" in f_type or "bit" in f_type:
-                format_parts.append("B")
+        # Переменные для сборки последовательных битовых полей КНБК
+        current_bit_container_size = 0
+        current_bit_accumulated = 0
+
+        for idx, field in enumerate(fields_list):
+            f_type = str(field.get("type", "uint32_t")).strip()
+            bit_match = bitfield_pattern.match(f_type)
+
+            if bit_match:
+                # Обнаружено Си битовое поле произвольного размера
+                base_c_type = bit_match.group(1).strip()
+                bit_width = int(bit_match.group(2))
+
+                # Определяем размер базового Си-контейнера в байтах
+                sample_fmt = self.c_type_mapping.get(base_c_type, "B")
+                container_bytes = struct.calcsize(sample_fmt)
+
+                # Если это первое битовое поле или мы заполнили предыдущий контейнер — выделяем новый байт/слово
+                if current_bit_container_size == 0 or current_bit_accumulated + bit_width > (container_bytes * 8):
+                    format_parts.append(sample_fmt)
+                    current_bit_container_size = container_bytes
+                    current_bit_accumulated = 0
+
+                # Запоминаем параметры для Прохода 2 (индекс в unpaked_values, смещение, маска)
+                bit_processing_queue.append({
+                    "field_index": idx,
+                    "field_name": field.get("name", "Unknown"),
+                    "struct_fmt_index": len(format_parts) - 1 - 1,  # Корректируем индекс с учетом маркера порядка байт
+                    "bit_offset": current_bit_accumulated,
+                    "bit_mask": (1 << bit_width) - 1,
+                    "is_bit": True
+                })
+                current_bit_accumulated += bit_width
             else:
-                format_parts.append(type_mapping.get(f_type, "I"))
+                # Обычный стандартный Си-тип данных
+                current_bit_container_size = 0  # Сбрасываем битовый контейнер
+                fmt_char = self.c_type_mapping.get(f_type, "I")
+                format_parts.append(fmt_char)
+
+                bit_processing_queue.append({
+                    "field_index": idx,
+                    "field_name": field.get("name", "Unknown"),
+                    "struct_fmt_index": len(format_parts) - 1 - 1,
+                    "is_bit": False
+                })
 
         fmt_string = "".join(format_parts)
+        print(f"[TRACE-Unpack] Скомпилированная Си-форматная строка: '{fmt_string}'")
 
         try:
             expected_size = struct.calcsize(fmt_string)
-        except Exception:
+        except Exception as e:
+            print(f"[TRACE-Unpack] Ошибка calcsize Си-формата: {e}")
             return
 
-        # 4. Жесткая валидация достаточности физического буфера
         if len(payload_bytes) < expected_size:
             print(
-                f"[StructuresDisplayController] ОШИБКА: Буфер прибора ({len(payload_bytes)} Б) меньше структуры ({expected_size} Б)")
+                f"[StructuresDisplayController] Буфер ({len(payload_bytes)} Б) меньше Си-структуры ({expected_size} Б)")
             return
 
-        # 5. Потокобезопасная распаковка и отправка в сигнальное русло Qt
+        # Проход 2: Распаковка и атомарное извлечение бит
         try:
-            # Берем точный атомарный кусок памяти буфера ответа
             slice_bytes = bytes(payload_bytes[:expected_size])
-            unpacked_values = struct.unpack(fmt_string, slice_bytes)
+            unpacked_raw = struct.unpack(fmt_string, slice_bytes)
 
-            for idx, field in enumerate(fields_list):
-                f_name = field.get("name", "Unknown")
-                live_value = unpacked_values[idx]
+            for item in bit_processing_queue:
+                f_name = item["field_name"]
+                raw_value = unpacked_raw[item["struct_fmt_index"]]
 
-                # Эмитируем межпотоковый Qt-сигнал
+                if item["is_bit"]:
+                    # Вычленяем битовый срез с помощью побитового сдвига и маски
+                    live_value = (raw_value >> item["bit_offset"]) & item["bit_mask"]
+                else:
+                    live_value = raw_value
+
+                # Отправляем очищенное значение Си-переменной в сигнальное русло Qt
                 self.data_unpacked_signal.emit(struct_name, f_name, int(live_value))
+
         except Exception as e:
-            print(f"[StructuresDisplayController] Исключение распаковки: {e}")
+            print(f"[StructuresDisplayController] Исключение Си-распаковки: {e}")

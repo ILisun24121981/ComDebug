@@ -4,20 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="исправления">
-      <change afterPath="$PROJECT_DIR$/app/controllers/SetCmdDataViewController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/controllers/StructuresDisplayController.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/CmdViewManager.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/CmdDataSettingView.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/SetCmdDataViewPannel.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/views/StructuresDisplayView.py" afterDir="false" />
+    <list default="true" id="c98c2494-9a56-4700-8f7b-99562165fd22" name="Changes" comment="Внедрен новый функционал добавления отображения к данным команды">
+      <change beforePath="$PROJECT_DIR$/.idea/RSS.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ComDebug.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/ApplicationController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/ApplicationController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/AutoPollingController.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/SetAutoPatternsController.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/AutoPollingModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/AutoPollingModel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/AutoPollingSettingView.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/views/MainWindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/MainWindow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/controllers/StructuresDisplayController.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/controllers/StructuresDisplayController.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/CmdViewManager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/CmdViewManager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/CmdDataSettingView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/CmdDataSettingView.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/views/StructuresDisplayView.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/views/StructuresDisplayView.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +48,7 @@
     "Python.IdsProtocol.executor": "Debug",
     "Python.MainWindow.executor": "Run",
     "Python.SendCmdView.executor": "Run",
+    "Python.__init__.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -61,7 +56,7 @@
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/ILisun/Work/Pycharm/RSS/app/models/protocols",
+    "last_opened_file_path": "D:/My/Energy/Pycharm/ComDebug",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.jshint": "true",
     "node.js.detected.package.tslint": "true",
@@ -77,10 +72,126 @@
       <recent name="C:\Users\ILisun\Work\Pycharm\RSS\app\models\protocols" />
     </key>
   </component>
+  <component name="RunManager">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="ComDebug" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <module name="ComDebug" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docs" factoryName="Docutils task">
+      <module name="ComDebug" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="docutils_input_file" value="" />
+      <option name="docutils_output_file" value="" />
+      <option name="docutils_params" value="" />
+      <option name="docutils_task" value="" />
+      <option name="docutils_open_in_browser" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docs" factoryName="Sphinx task">
+      <module name="ComDebug" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="docutils_input_file" value="" />
+      <option name="docutils_output_file" value="" />
+      <option name="docutils_params" value="" />
+      <option name="docutils_task" value="" />
+      <option name="docutils_open_in_browser" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Autodetect">
+      <module name="ComDebug" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <module name="ComDebug" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method v="2" />
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-6fa658e1df1a-5bd6d13a2a75-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-262.8665.369" />
+        <option value="bundled-python-sdk-821f704e66d9-5bd6d13a2a75-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-262.9437.214" />
       </set>
     </attachedChunks>
   </component>
@@ -252,7 +363,15 @@
       <option name="project" value="LOCAL" />
       <updated>1792391598971</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Внедрен новый функционал добавления отображения к данным команды">
+      <option name="closed" value="true" />
+      <created>1792419485387</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1792419485387</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -278,7 +397,8 @@
     <MESSAGE value="Добавил логику именования команд по дефолту" />
     <MESSAGE value="IDSPannel рамка нового пакета более жирная" />
     <MESSAGE value="исправления" />
-    <option name="LAST_COMMIT_MESSAGE" value="исправления" />
+    <MESSAGE value="Внедрен новый функционал добавления отображения к данным команды" />
+    <option name="LAST_COMMIT_MESSAGE" value="Внедрен новый функционал добавления отображения к данным команды" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

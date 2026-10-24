@@ -184,25 +184,45 @@ class StructuresDisplayView(QDialog):
             return str(value)
 
         fmt = self.active_formats.get(struct_name, "dec")
-        f_type = self.field_types_registry.get(struct_name, {}).get(field_name, "uint32")
+        f_type = str(self.field_types_registry.get(struct_name, {}).get(field_name, "uint32_t")).lower().strip()
+
+        # Вычисляем точную битовую длину Си-переменной для красивого вывода Bin/Hex строк
+        if ":" in f_type:
+            try:
+                bit_len = int(f_type.split(":")[1])
+            except Exception:
+                bit_len = 8
+        else:
+            if "8" in f_type or "char" in f_type:
+                bit_len = 8
+            elif "16" in f_type or "short" in f_type:
+                bit_len = 16
+            elif "64" in f_type or "long long" in f_type:
+                bit_len = 64
+            else:
+                bit_len = 32
 
         if fmt == "hex":
-            if "8" in f_type: return f"0x{value & 0xFF:02X}"
-            if "16" in f_type: return f"0x{value & 0xFFFF:04X}"
-            return f"0x{value & 0xFFFFFFFF:08X}"
+            if bit_len <= 8: return f"0x{value & 0xFF:02X}"
+            if bit_len <= 16: return f"0x{value & 0xFFFF:04X}"
+            if bit_len <= 32: return f"0x{value & 0xFFFFFFFF:08X}"
+            return f"0x{value & 0xFFFFFFFFFFFFFFFF:016X}"
 
         elif fmt == "bin":
-            if "8" in f_type: return f"0b{value & 0xFF:08b}"
-            if "16" in f_type:
+            if bit_len <= 8: return f"0b{value & ((1 << bit_len) - 1):0{bit_len}b}"
+            if bit_len <= 16:
                 v = value & 0xFFFF
                 return f"0b{v >> 8:08b}_{v & 0xFF:08b}"
             v = value & 0xFFFFFFFF
             return f"0b{v >> 24:08b}_{v >> 16 & 0xFF:08b}_{v >> 8 & 0xFF:08b}_{v & 0xFF:08b}"
 
-        if f_type == "int16":
+        # Декодирование знака для стандартных знаковых Си-типов
+        if "int16" in f_type or "short" in f_type:
             return str(value if value < 32768 else value - 65536)
-        if f_type == "int8":
-            return str(value if value < 128 else value - 256)
+        if "int8" in f_type or "char" in f_type:
+            if "unsigned" not in f_type and "uint" not in f_type:
+                return str(value if value < 128 else value - 256)
+
         return str(value)
 
     @pyqtSlot(str, str, int)

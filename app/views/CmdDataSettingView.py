@@ -1,25 +1,29 @@
-# === ФАЙЛ: app/views/CmdDataSettingView.py (ЧАСТЬ 1 ИЗ 2) ===
+# === ФАЙЛ: app/views/CmdDataSettingView.py (ЧАСТЬ 1 ИЗ 2 С КНОПКОЙ СОЗДАНИЯ) ===
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
-    QTableWidget, QTableWidgetItem, QPushButton, QHeaderView
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QInputDialog,
+    QTableWidget, QTableWidgetItem, QPushButton, QHeaderView, QMessageBox
 )
 from PyQt6.QtCore import Qt
+from app.models.CmdViewManager import CmdViewManager
 
 
 class CmdDataSettingView(QDialog):
     """
     Модальное окно конфигурации распределения структур отображения (PyQt6 View).
-    Полностью независим от длин отправляемых кодограмм.
+    Дополнен функционалом динамического создания шаблонов JSON на жестком диске.
     """
 
     def __init__(self, saved_commands: list[str], available_structures: dict, current_config: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Настройка структур отображения данных")
-        self.setFixedSize(540, 420)
+        self.setFixedSize(620, 420)
         self.setModal(True)
 
         self.available_structures = available_structures
         self.final_configuration = {}
+        self.cmd_view_manager = CmdViewManager()
+        self.saved_commands = saved_commands
+        self.current_config = current_config
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -38,7 +42,16 @@ class CmdDataSettingView(QDialog):
 
         self._populate_table_data(saved_commands, current_config)
 
+        # Нижний ряд кнопок управления
         buttons_layout = QHBoxLayout()
+
+        # ВНЕДРЕНИЕ: Левая кнопка создания новой структуры отображения КНБК
+        self.btn_create_struct = QPushButton("Создать структуру отображения")
+        self.btn_create_struct.setHeight = 24
+        self.btn_create_struct.setStyleSheet("font-weight: normal; color: #1D6477;")
+        self.btn_create_struct.clicked.connect(self._handle_create_structure_clicked)
+        buttons_layout.addWidget(self.btn_create_struct)
+
         buttons_layout.addStretch()
 
         self.btn_cancel = QPushButton("Отменить")
@@ -54,11 +67,11 @@ class CmdDataSettingView(QDialog):
         buttons_layout.addWidget(self.btn_save)
 
         layout.addLayout(buttons_layout)
-# === ФАЙЛ: app/views/CmdDataSettingView.py (ЧАСТЬ 2 ИЗ 2) ===
+
+    # === ФАЙЛ: app/views/CmdDataSettingView.py (ЧАСТЬ 2 ИЗ 2 С КНОПКОЙ СОЗДАНИЯ) ===
 
     def _populate_table_data(self, saved_commands: list[str], current_config: dict):
         self.table.setRowCount(len(saved_commands))
-        # Извлекаем карту соответствий из переданной конфигурации шаблона
         active_mappings = current_config.get("mappings", {})
 
         for row, cmd_name in enumerate(saved_commands):
@@ -96,6 +109,35 @@ class CmdDataSettingView(QDialog):
             else:
                 size_item.setText("—")
 
+    def _handle_create_structure_clicked(self):
+        """Обработчик нажатия кнопки 'Создать структуру отображения'."""
+        # Вычисляем следующее дефолтное имя TempX на основе парсинга файлов
+        default_name = self.cmd_view_manager.generate_next_struct_default_name()
+
+        # Вызываем встроенный диалог ввода текста Qt
+        text, ok = QInputDialog.getText(
+            self, "Создание структуры",
+            "Введите название файла структуры отображения:",
+            text=default_name
+        )
+
+        if ok and text.strip():
+            struct_clean_name = text.strip()
+            success, message = self.cmd_view_manager.create_empty_structure_template(struct_clean_name)
+
+            if success:
+                QMessageBox.information(
+                    self, "Успех",
+                    f"Файл заготовки '{struct_clean_name}.json' успешно создан!\n\n"
+                    "Заполните структуру данными в формате, указанном в примере, "
+                    "в открывшемся окне проводника."
+                )
+                # Перечитываем доступные файлы и обновляем таблицу, чтобы новый файл сразу отобразился в ComboBox
+                self.available_structures = self.cmd_view_manager.load_available_view_structures()
+                self._populate_table_data(self.saved_commands, self.current_config)
+            else:
+                QMessageBox.critical(self, "Ошибка создания", f"Не удалось создать файл шаблона.\nДетали: {message}")
+
     def _handle_save_clicked(self):
         """Событие: Сохранение пачки маппингов."""
         mappings_result = {}
@@ -108,7 +150,6 @@ class CmdDataSettingView(QDialog):
             if struct_id:
                 mappings_result[cmd_name] = struct_id
 
-        # Формируем итоговый упакованный конфиг шаблона
         self.final_configuration = {
             "mappings": mappings_result
         }
