@@ -63,23 +63,38 @@ class CmdViewManager:
         data = self._read_file(protocol_name)
         return data.get(name, {})
 
+    @staticmethod
+    def _natural_sort_key(text: str):
+        """Ключ для естественной алфавитной сортировки (Temp2 перед Temp10)."""
+        return [
+            int(part) if part.isdigit() else part.lower()
+            for part in re.split(r"(\d+)", text)
+        ]
+
+    def _sort_patterns_dict(self, data: dict) -> dict:
+        """Сортирует конфигурации отображения по алфавиту."""
+        sorted_dict = {}
+        for key in sorted(data.keys(), key=self._natural_sort_key):
+            sorted_dict[key] = data[key]
+        return sorted_dict
+
     def save_pattern(self, protocol_name: str, name: str, config: dict) -> bool:
-        """Записывает комплексную конфигурацию маппингов на диск."""
+        """Записывает комплексную конфигурацию маппингов на диск с сортировкой."""
         if not protocol_name or not name:
             return False
         data = self._read_file(protocol_name)
         data[name] = config
-        return self._write_file(protocol_name, data)
+        return self._write_file(protocol_name, self._sort_patterns_dict(data))
 
     def delete_patterns(self, protocol_name: str, names: list[str]) -> bool:
-        """Удаляет выбранные конфигурации маппингов из файла."""
+        """Удаляет выбранные конфигурации маппингов и пересортировывает файл."""
         if not protocol_name or not names:
             return False
         data = self._read_file(protocol_name)
         for name in names:
             if name in data:
                 del data[name]
-        return self._write_file(protocol_name, data)
+        return self._write_file(protocol_name, self._sort_patterns_dict(data))
 
     def generate_next_default_name(self, protocol_name: str) -> str:
         """Автоматически вычисляет и возвращает следующее имя TempX по аналогии с автоопросом."""
