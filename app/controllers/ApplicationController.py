@@ -7,6 +7,7 @@ from app.models.CmdPatternsManager import CmdPatternsManager
 from app.models.protocols.IdsProtocol import IdsProtocol
 from app.models.protocols.GelsProtocol import GelsProtocol
 from app.models.protocols.ApsProtocol import ApsProtocol
+from app.models.protocols.UniProtocol import UniProtocol
 from app.models.AutoPollingModel import AutoPollingModel
 from app.controllers.AutoPollingController import AutoPollingController
 from app.views.MainWindow import MainWindow
@@ -63,6 +64,7 @@ class ApplicationController(QObject):
         self.ids_protocol_instance: Optional[IdsProtocol] = None
         self.gels_protocol_instance: Optional[GelsProtocol] = None
         self.aps_protocol_instance: Optional[ApsProtocol] = None
+        self.uni_protocol_instance: Optional[UniProtocol] = None
 
         self.auto_polling_model = AutoPollingModel()
         self.auto_polling_controller = AutoPollingController(
@@ -132,7 +134,8 @@ class ApplicationController(QObject):
             self.gels_protocol_instance = GelsProtocol()
         elif protocol_name == "Aps":
             self.aps_protocol_instance = ApsProtocol()
-
+        elif protocol_name == "Uni":
+            self.uni_protocol_instance = UniProtocol()
     def handle_session_stop(self):
         """Вызывается при штатном закрытии физического COM-порта пользователем."""
         self.auto_polling_controller.handle_stop_execution()
@@ -173,6 +176,7 @@ class ApplicationController(QObject):
         self.ids_protocol_instance = None
         self.gels_protocol_instance = None
         self.aps_protocol_instance = None
+        self.uni_protocol_instance = None
         self.rx_buffer.clear()
         self.is_transaction_active = False
 
@@ -227,6 +231,7 @@ class ApplicationController(QObject):
         self.ids_protocol_instance = None
         self.gels_protocol_instance = None
         self.aps_protocol_instance = None
+        self.uni_protocol_instance = None
         self.rx_buffer.clear()
         self.is_transaction_active = False
 
@@ -257,7 +262,7 @@ class ApplicationController(QObject):
     def handle_incoming_bytes(self, raw_bytes: bytes):
         if not raw_bytes: return
         active_proto = self.com_port_controller.active_protocol_name
-        if active_proto not in ["IDS", "Gels", "Aps"]:
+        if active_proto not in ["IDS", "Gels", "Aps", "Uni"]:
             self.port_logger_controller.write_log("in", raw_bytes.hex(" ").upper())
             return
         self.rx_buffer.extend(raw_bytes)
@@ -353,6 +358,38 @@ class ApplicationController(QObject):
 
                     if self.auto_polling_controller.is_running:
                         self.auto_polling_controller.schedule_next_step()
+        elif active_proto == "Uni" and self.uni_protocol_instance:
+            while True:
+                frame = self.uni_protocol_instance.parse_stream(self.rx_buffer)
+                if frame is None:
+                    break
+                raw_packet = frame.get("raw_packet", b"")
+                if raw_packet:
+                    direction = "in" if frame.get("is_valid", False) else "err"
+                    self.port_logger_controller.write_log(direction, raw_packet.hex(" ").upper())
+                if frame.get("is_valid", False):
+                    self.is_transaction_active = False
+                    self.global_timeout_timer.stop()
+
+                    sent_cmd = 0x00
+                    if self.auto_polling_controller.is_running:
+                        cmd_name = self.auto_polling_controller.last_dispatched_command_name
+                        if cmd_name:
+                            frame_data = self.patterns_manager.extract_pattern_data(active_proto, cmd_name)
+                            sent_cmd = frame_data.get("cmd_code", 0x00)
+                    else:
+                        sent_cmd = self.send_cmd_controller.current_cmd_code
+
+                    current_mapping_name = self.main_window.cmd_data_view_pannel.combo_patterns.currentText()
+                    self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+                        active_proto=active_proto,
+                        current_pattern_name=current_mapping_name,
+                        command_code=sent_cmd,
+                        payload_bytes=frame.get("payload", b"")
+                    )
+
+                    if self.auto_polling_controller.is_running:
+                        self.auto_polling_controller.schedule_next_step()
 
     def handle_manual_command_dispatch(self, dst_addr: int, src_addr: int, command_code: int, payload: bytes):
         if not self.com_port_controller.model.is_connected():
@@ -369,6 +406,8 @@ class ApplicationController(QObject):
             full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         elif self.com_port_controller.active_protocol_name == "Aps" and self.aps_protocol_instance:
             full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+        elif self.com_port_controller.active_protocol_name == "Uni" and self.uni_protocol_instance:
+            full_packet = self.uni_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         else:
             full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
@@ -393,6 +432,12 @@ class ApplicationController(QObject):
             else:
                 tmp_aps = ApsProtocol()
                 full_packet = tmp_aps.pack_message(dst_addr, src_addr, command_code, payload)
+        elif proto == "Uni":
+            if self.uni_protocol_instance:
+                full_packet = self.uni_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
+            else:
+                tmp_uni = UniProtocol()
+                full_packet = tmp_uni.pack_message(dst_addr, src_addr, command_code, payload)
         else:
             full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 

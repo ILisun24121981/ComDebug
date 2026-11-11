@@ -46,7 +46,7 @@ class ComPortView(QWidget):
         # Выбор промышленного протокола связи КНБК
         controls_layout.addWidget(QLabel("Протокол:"))
         self.protocol_combobox = QComboBox()
-        self.protocol_combobox.addItems(["Gels", "Aps", "IDS"])
+        self.protocol_combobox.addItems(["Gels", "Aps", "IDS", "Uni"])
         self.protocol_combobox.setFixedWidth(75)
         self.protocol_combobox.currentTextChanged.connect(self._handle_protocol_change)
         controls_layout.addWidget(self.protocol_combobox)
