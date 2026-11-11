@@ -20,20 +20,34 @@ class CmdPatternsManager:
         return [n for n in patterns.keys() if n != "__service_address__"]
 
     def load_service_addresses(self, protocol_name: str) -> dict:
+        """
+        Вычитывает сервисные адреса из секции '__service_address__'.
+        Для Gels используются теги 'devAddr' и 'modAddr', для остальных — 'destAddr' и 'srcAddr'.
+        """
         patterns = self._read_file(protocol_name)
         service_data = patterns.get("__service_address__", {})
 
-        if service_data:
-            return service_data
-
         if protocol_name == "Gels":
+            if service_data:
+                return {
+                    "dst": service_data.get("devAddr", service_data.get("dst", "CA")),
+                    "src": service_data.get("modAddr", service_data.get("src", "17"))
+                }
             return {"dst": "CA", "src": "17"}
         else:
+            if service_data:
+                return {
+                    "dst": service_data.get("destAddr", service_data.get("dst", "8A")),
+                    "src": service_data.get("srcAddr", service_data.get("src", "0A"))
+                }
             return {"dst": "8A", "src": "0A"}
 
     def save_service_addresses(
         self, protocol_name: str, dst_hex: str, src_hex: str
     ):
+        """
+        Сохраняет сервисные адреса в начало JSON-файла под протокольно-зависимыми ключами.
+        """
         if not protocol_name:
             return
 
@@ -41,12 +55,19 @@ class CmdPatternsManager:
         file_path = self.config_dir / file_name
 
         patterns = self._read_file(protocol_name)
-        patterns["__service_address__"] = {
-            "dst": dst_hex.upper(),
-            "src": src_hex.upper()
-        }
 
-        ordered = {"__service_address__": patterns["__service_address__"]}
+        if protocol_name == "Gels":
+            service_block = {
+                "devAddr": dst_hex.upper(),
+                "modAddr": src_hex.upper()
+            }
+        else:
+            service_block = {
+                "destAddr": dst_hex.upper(),
+                "srcAddr": src_hex.upper()
+            }
+
+        ordered = {"__service_address__": service_block}
         for k, v in patterns.items():
             if k != "__service_address__":
                 ordered[k] = v
