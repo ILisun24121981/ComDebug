@@ -173,9 +173,13 @@ class SendCmdController(QObject):
                 self.view.show_error("Ошибка формата", "Неверный формат HEX-данных.")
 
     def process_manual_send(self):
+        print("\n[TRACE-SendCmd] >>> Клик по кнопке 'Отправить'", flush=True)
+        print(f"[TRACE-SendCmd] Режим is_saved_mode_active = {self.is_saved_mode_active}", flush=True)
+
         addrs = self.view.get_addresses_values()
         dst_str = addrs["dst"].strip().upper()
         src_str = addrs["src"].strip().upper()
+        print(f"[TRACE-SendCmd] Адреса из полей: dst='{dst_str}', src='{src_str}'", flush=True)
 
         try:
             dst_addr = int(dst_str, 16)
@@ -199,18 +203,50 @@ class SendCmdController(QObject):
                 self.patterns_manager.save_service_addresses(self.active_protocol, dst_str, src_str)
                 self.loaded_service_addrs = {"dst": dst_str, "src": src_str}
 
+        print(
+            f"[TRACE-SendCmd] Подготовка к отправке: current_cmd_code={self.current_cmd_code!r} "
+            f"(type={type(self.current_cmd_code)}), payload={self.current_payload_bytes!r} "
+            f"(type={type(self.current_payload_bytes)})",
+            flush=True
+        )
+
         final_cmd = int(self.current_cmd_code)
 
         if self.on_command_ready_to_dispatch:
+            print("[TRACE-SendCmd] Вызов колбэка on_command_ready_to_dispatch...", flush=True)
             self.on_command_ready_to_dispatch(dst_addr, src_addr, final_cmd, self.current_payload_bytes)
+            print("[TRACE-SendCmd] <<< Колбэк on_command_ready_to_dispatch успешно завершен", flush=True)
 
-            if not self.is_saved_mode_active:
-                self.current_payload_hex = ""
-                self.current_payload_bytes = b""
-                self.view.update_payload_status(0)
-            else:
-                self.configure_for_protocol(self.active_protocol)
+    def sync_patterns_after_save(self, protocol_name: str, saved_pattern_name: str = ""):
+        """
+        Обновляет выпадающий список шаблонов после сохранения, переключает пульт
+        в режим «Сохраненная» и устанавливает активным только что сохраненный шаблон.
+        """
+        self.active_protocol = protocol_name
+        pattern_names = self.patterns_manager.load_patterns_names(protocol_name)
 
+        self._disconnect_view_signals()
+        self.view.blockSignals(True)
+
+        previous_selected = self.view.pattern_combobox.currentText()
+        self.view.populate_patterns(pattern_names)
+
+        if pattern_names:
+            self.view.set_radio_layout_visible(True)
+            self.view.radio_saved.setChecked(True)
+            self.is_saved_mode_active = True
+            self.view.set_view_mode(True)
+
+            target = saved_pattern_name if saved_pattern_name in pattern_names else previous_selected
+            if target in pattern_names:
+                self.view.pattern_combobox.setCurrentText(target)
+
+        self.view.blockSignals(False)
+        self._connect_view_signals()
+
+        # Подгружаем в интерфейс и внутренние поля контроллера данные выбранного шаблона
+        if pattern_names:
+            self.handle_pattern_selection(self.view.pattern_combobox.currentText())
     def process_manual_save_click(self):
         if not self.is_saved_mode_active:
             cmd_str = self.view.get_cmd_value()

@@ -400,21 +400,26 @@ class ApplicationController(QObject):
             self.is_transaction_active = False
             self.global_timeout_timer.stop()
 
-        if self.com_port_controller.active_protocol_name == "IDS" and self.ids_protocol_instance:
+        proto = self.com_port_controller.active_protocol_name
+        if proto == "IDS" and self.ids_protocol_instance:
             full_packet = self.ids_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
-        elif self.com_port_controller.active_protocol_name == "Gels" and self.gels_protocol_instance:
+        elif proto == "Gels" and self.gels_protocol_instance:
             full_packet = self.gels_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
-        elif self.com_port_controller.active_protocol_name == "Aps" and self.aps_protocol_instance:
+        elif proto == "Aps" and self.aps_protocol_instance:
             full_packet = self.aps_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
-        elif self.com_port_controller.active_protocol_name == "Uni" and self.uni_protocol_instance:
+        elif proto == "Uni" and self.uni_protocol_instance:
             full_packet = self.uni_protocol_instance.pack_message(dst_addr, src_addr, command_code, payload)
         else:
             full_packet = struct.pack("BB", dst_addr, src_addr) + payload
 
-        self._start_global_timeout_timer()
-        self.com_port_controller.model.send_data(full_packet)
-        self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
-
+        try:
+            self.com_port_controller.model.send_data(full_packet)
+            self._start_global_timeout_timer()
+            self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
+        except Exception as e:
+            self.is_transaction_active = False
+            self.global_timeout_timer.stop()
+            self.port_logger_controller.write_log("err", f"ОШИБКА ОТПРАВКИ В ПОРТ: {e}")
     def process_pattern_save_request(self, command_code: int, payload: bytes):
         addrs = self.main_window.send_cmd_view.get_addresses_values()
         try:
@@ -450,7 +455,8 @@ class ApplicationController(QObject):
 
         save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         if save_controller.execute_save(proto, full_packet):
-            self.send_cmd_controller.configure_for_protocol(proto)
+            saved_name = save_view.get_pattern_name()
+            self.send_cmd_controller.sync_patterns_after_save(proto, saved_name)
 
     def process_ids_panel_pattern_save(self, selected_ids: list):
         if not self.ids_protocol_instance: return
@@ -471,7 +477,8 @@ class ApplicationController(QObject):
 
         save_controller = SaveCmdPatternController(view=save_view, patterns_manager=self.patterns_manager)
         if save_controller.execute_save(proto, full_packet):
-            self.send_cmd_controller.configure_for_protocol(proto)
+            saved_name = save_view.get_pattern_name()
+            self.send_cmd_controller.sync_patterns_after_save(proto, saved_name)
 
     def execute_ids_data_query(self, selected_ids: list):
         if not self.com_port_controller.model.is_connected() or not self.ids_protocol_instance:
@@ -491,8 +498,14 @@ class ApplicationController(QObject):
             self.is_transaction_active = False
             self.global_timeout_timer.stop()
         self._start_global_timeout_timer()
-        self.com_port_controller.model.send_data(full_packet)
-        self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
+        try:
+            self.com_port_controller.model.send_data(full_packet)
+            self._start_global_timeout_timer()
+            self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
+        except Exception as e:
+            self.is_transaction_active = False
+            self.global_timeout_timer.stop()
+            self.port_logger_controller.write_log("err", f"ОШИБКА ОТПРАВКИ В ПОРТ: {e}")
 
     def send_saved_command_by_name(self, pattern_name: str):
         if not self.auto_polling_controller or not self.auto_polling_controller.is_running:
@@ -521,9 +534,16 @@ class ApplicationController(QObject):
             self.global_timeout_timer.stop()
         self._start_global_timeout_timer()
         if self.com_port_controller.model.is_connected():
-            self.com_port_controller.model.send_data(full_packet)
-            self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
-
+            if self.com_port_controller.model.is_connected():
+                try:
+                    self.com_port_controller.model.send_data(full_packet)
+                    self._start_global_timeout_timer()
+                    self.port_logger_controller.write_log("out", full_packet.hex(" ").upper())
+                except Exception as e:
+                    self.is_transaction_active = False
+                    self.global_timeout_timer.stop()
+                    self.port_logger_controller.write_log("err", f"ОШИБКА ОТПРАВКИ АВТООПРОСА: {e}")
+                    self.auto_polling_controller.handle_stop_execution()
     @pyqtSlot(str)
     def handle_auto_polling_dispatch(self, pattern_name: str):
         self.send_saved_command_by_name(pattern_name)

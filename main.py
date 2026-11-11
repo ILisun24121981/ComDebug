@@ -1,9 +1,23 @@
 import sys
 import pathlib
+import traceback
+import faulthandler
 from PyQt6.QtWidgets import QApplication
 from app.models.ConfigManager import ConfigManager
 from app.views.MainWindow import MainWindow
 from app.controllers.ApplicationController import ApplicationController
+
+# Включаем низкоуровневый дамп стека при C++ сбоях
+faulthandler.enable()
+
+def global_exception_hook(exc_type, exc_value, exc_tb):
+    print("\n" + "=" * 60, file=sys.stderr, flush=True)
+    print("[CRITICAL PYTHON EXCEPTION IN QT SLOT]", file=sys.stderr, flush=True)
+    traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
+    print("=" * 60 + "\n", file=sys.stderr, flush=True)
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = global_exception_hook
 
 def ensure_config_environment():
     """Гарантирует физическое наличие структуры папок конфигураций."""

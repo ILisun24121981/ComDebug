@@ -117,6 +117,29 @@ class CmdPatternsManager:
 
         return result
 
+    @staticmethod
+    def _natural_sort_key(text: str):
+        """Ключ для естественной алфавитной сортировки (учитывает регистр и числа внутри строк)."""
+        return [
+            int(part) if part.isdigit() else part.lower()
+            for part in re.split(r"(\d+)", text)
+        ]
+
+    def _sort_patterns_dict(self, patterns: dict) -> dict:
+        """
+        Возвращает новый словарь, где служебный блок '__service_address__' идет первым,
+        а остальные команды отсортированы по алфавиту.
+        """
+        sorted_dict = {}
+        if "__service_address__" in patterns:
+            sorted_dict["__service_address__"] = patterns["__service_address__"]
+
+        command_keys = [k for k in patterns.keys() if k != "__service_address__"]
+        for key in sorted(command_keys, key=self._natural_sort_key):
+            sorted_dict[key] = patterns[key]
+
+        return sorted_dict
+
     def save_pattern(
         self, protocol_name: str, pattern_name: str, raw_packet: bytes
     ) -> bool:
@@ -128,10 +151,11 @@ class CmdPatternsManager:
 
         patterns = self._read_file(protocol_name)
         patterns[pattern_name] = raw_packet.hex(" ").upper()
+        sorted_patterns = self._sort_patterns_dict(patterns)
 
         try:
             with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(patterns, f, ensure_ascii=False, indent=2)
+                json.dump(sorted_patterns, f, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
             print(f"[CmdPatternsManager] Ошибка записи в {file_name}: {e}")
@@ -150,10 +174,11 @@ class CmdPatternsManager:
         for name in patterns_to_delete:
             if name in patterns:
                 del patterns[name]
+        sorted_patterns = self._sort_patterns_dict(patterns)
 
         try:
             with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(patterns, f, ensure_ascii=False, indent=2)
+                json.dump(sorted_patterns, f, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
             print(f"[CmdPatternsManager] Ошибка при удалении: {e}")
