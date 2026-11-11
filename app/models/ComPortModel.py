@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 from typing import Union, Optional
@@ -10,6 +11,8 @@ try:
 except ImportError:
     SERIAL_AVAILABLE = False
 
+if sys.platform.startswith("win"):
+    import winreg
 
 class ComPortModel(QObject):
     """
@@ -28,10 +31,49 @@ class ComPortModel(QObject):
 
     @staticmethod
     def get_available_ports() -> list[str]:
+        """
+        Сканирует как физические PnP-порты, так и виртуальные COM-порты
+        (через реестр Windows SERIALCOMM и символические ссылки).
+        """
+        found_ports = set()
+
+        # 1. Стандартный поиск pyserial (включая символические ссылки)
         if SERIAL_AVAILABLE:
-            ports = serial.tools.list_ports.comports()
-            return [port.device for port in ports]
-        return []
+            try:
+                ports = serial.tools.list_ports.comports(include_links=True)
+                for port in ports:
+                    if port.device:
+                        found_ports.add(port.device)
+            except Exception as e:
+                print(f"[ComPortModel] Ошибка pyserial.comports: {e}")
+
+        # 2. Прямое чтение ветки реестра Windows (находит com0com, VSPD и нестандартные порты)
+        if sys.platform.startswith("win"):
+            reg_path = r"HARDWARE\DEVICEMAP\SERIALCOMM"
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_path) as key:
+                    i = 0
+                    while True:
+                        try:
+                            _, port_name, _ = winreg.EnumValue(key, i)
+                            if port_name:
+                                found_ports.add(str(port_name))
+                            i += 1
+                        except OSError:
+                            # Достигнут конец списка значений в ключе реестра
+                            break
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                print(f"[ComPortModel] Ошибка чтения реестра SERIALCOMM: {e}")
+
+        # 3. Естественная сортировка (COM2 идет перед COM10)
+        def _port_sort_key(name: str):
+            digits = "".join(filter(str.isdigit, name))
+            prefix = "".join(filter(str.isalpha, name))
+            return (prefix, int(digits) if digits else 0, name)
+
+        return sorted(found_ports, key=_port_sort_key)
 
     def open_port(self, port_name: str, baud_rate: int = 9600, timeout_sec: float = 0.5,
                   bytesize: int = 8, parity: str = "None", stopbits: float = 1.0,
