@@ -311,10 +311,9 @@ class ApplicationController(QObject):
                     print(
                         f"[TRACE-AppController] Передача бинарного кадра Gels в StructuresDisplayController. Шаблон: '{current_mapping_name}'")
 
-                    self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+                    self._dispatch_payload_to_structures_display(
                         active_proto=active_proto,
-                        current_pattern_name=current_mapping_name,
-                        command_code=sent_cmd,
+                        sent_cmd=sent_cmd,
                         payload_bytes=frame.get("payload", b"")
                     )
 
@@ -349,10 +348,9 @@ class ApplicationController(QObject):
                     print(
                         f"[TRACE-AppController] Передача бинарного кадра Aps в StructuresDisplayController. Шаблон: '{current_mapping_name}'")
 
-                    self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+                    self._dispatch_payload_to_structures_display(
                         active_proto=active_proto,
-                        current_pattern_name=current_mapping_name,
-                        command_code=sent_cmd,
+                        sent_cmd=sent_cmd,
                         payload_bytes=frame.get("payload", b"")
                     )
 
@@ -381,10 +379,9 @@ class ApplicationController(QObject):
                         sent_cmd = self.send_cmd_controller.current_cmd_code
 
                     current_mapping_name = self.main_window.cmd_data_view_pannel.combo_patterns.currentText()
-                    self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+                    self._dispatch_payload_to_structures_display(
                         active_proto=active_proto,
-                        current_pattern_name=current_mapping_name,
-                        command_code=sent_cmd,
+                        sent_cmd=sent_cmd,
                         payload_bytes=frame.get("payload", b"")
                     )
 
@@ -547,3 +544,22 @@ class ApplicationController(QObject):
     @pyqtSlot(str)
     def handle_auto_polling_dispatch(self, pattern_name: str):
         self.send_saved_command_by_name(pattern_name)
+
+    def _dispatch_payload_to_structures_display(self, active_proto: str, sent_cmd: int, payload_bytes: bytes):
+        panel = self.main_window.cmd_data_view_pannel
+        is_unsaved = panel.radio_new.isChecked() or panel.input_pattern_name.isVisible()
+
+        if is_unsaved:
+            override_cfg = self.set_cmd_data_view_controller.temp_in_memory_config
+            current_mapping_name = ""
+        else:
+            override_cfg = None
+            current_mapping_name = panel.combo_patterns.currentText()
+
+        self.set_cmd_data_view_controller.display_math_controller.process_and_unpack_payload(
+            active_proto=active_proto,
+            current_pattern_name=current_mapping_name,
+            command_code=sent_cmd,
+            payload_bytes=payload_bytes,
+            override_config=override_cfg
+        )

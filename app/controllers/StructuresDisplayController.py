@@ -41,15 +41,25 @@ class StructuresDisplayController(QObject):
                 pass
             self.data_unpacked_signal.connect(self.live_display_dialog.update_live_telemetry_field)
 
-    def process_and_unpack_payload(self, active_proto: str, current_pattern_name: str, command_code: int,
-                                   payload_bytes: bytes):
+    def process_and_unpack_payload(
+        self,
+        active_proto: str,
+        current_pattern_name: str,
+        command_code: int,
+        payload_bytes: bytes,
+        override_config: dict = None
+    ):
         """Динамически распаковывает payload Си-структур и генерирует безопасный сигнал для GUI."""
         if not self.live_display_dialog or not self.live_display_dialog.isVisible():
             return
-        if not current_pattern_name:
-            return
 
-        config = self.cmd_view_manager.load_pattern_config(active_proto, current_pattern_name)
+        if override_config is not None:
+            config = override_config
+        else:
+            if not current_pattern_name:
+                return
+            config = self.cmd_view_manager.load_pattern_config(active_proto, current_pattern_name)
+
         active_mappings = config.get("mappings", {})
 
         target_cmd_name = None

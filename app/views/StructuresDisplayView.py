@@ -12,8 +12,7 @@ class StructuresDisplayView(QDialog):
     Дополнен расширенной трассировкой для поиска причин аппаратного краша.
     """
 
-    def __init__(self, active_mappings: dict, structures_definitions: dict, parent=None):
-        print("[TRACE-StructuresDisplayView] Вход в __init__ конструктора окна...")
+    def __init__(self, active_mappings: dict, structures_definitions: dict, is_unsaved: bool = False, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Монитор декомпозиции структур данных (Gels/Aps)")
         self.resize(850, 520)
@@ -24,9 +23,9 @@ class StructuresDisplayView(QDialog):
         self.field_types_registry = {}
         self.active_formats = {}
 
-        print("[TRACE-StructuresDisplayView] Создание корневых макетов QVBoxLayout и QScrollArea...")
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(8)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -38,14 +37,18 @@ class StructuresDisplayView(QDialog):
         self.horizontal_layout.setSpacing(12)
         self.horizontal_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
-        print("[TRACE-StructuresDisplayView] Переход к вызову метода _build_telemetry_frames...")
         self._build_telemetry_frames(active_mappings, structures_definitions)
 
-        print("[TRACE-StructuresDisplayView] Укладываем макеты в контейнер прокрутки...")
         self.scroll_area.setWidget(self.scroll_content_widget)
-        main_layout.addWidget(self.scroll_area)
-        print("[TRACE-StructuresDisplayView] Конструктор __init__ успешно завершил работу.")
+        main_layout.addWidget(self.scroll_area, stretch=1)
 
+        self.unsaved_label = QLabel("Данный шаблон отображения не сохранен")
+        self.unsaved_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.unsaved_label.setStyleSheet(
+            "color: #D9534F; font-weight: bold; font-size: 12px; padding: 2px;"
+        )
+        self.unsaved_label.setVisible(is_unsaved)
+        main_layout.addWidget(self.unsaved_label)
     # === ФАЙЛ: app/views/StructuresDisplayView.py (ЧАСТЬ 2 ИЗ 2 С ЛОГАМИ) ===
 
     def _build_telemetry_frames(self, active_mappings: dict, structures_definitions: dict):
@@ -234,3 +237,8 @@ class StructuresDisplayView(QDialog):
         self.raw_values_cache[struct_name][field_name] = value
         display_str = self._format_numeric_value(struct_name, field_name, value)
         self.value_inputs_registry[struct_name][field_name].setText(display_str)
+
+    def mark_as_saved(self):
+        """Скрывает предупреждение о несохраненном шаблоне после записи на диск."""
+        if hasattr(self, "unsaved_label") and self.unsaved_label:
+            self.unsaved_label.setVisible(False)

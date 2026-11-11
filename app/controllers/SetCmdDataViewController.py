@@ -156,6 +156,10 @@ class SetCmdDataViewController(QObject):
             self.refresh_patterns_list()
             self.view.combo_patterns.setCurrentText(name)
 
+            # Убираем красное предупреждение, если окно монитора уже открыто
+            if self.live_display_dialog and self.live_display_dialog.isVisible():
+                self.live_display_dialog.mark_as_saved()
+
     def open_manage_mappings_dialog(self):
         names = self.cmd_view_manager.load_pattern_names(self.active_protocol)
         dialog = ManageAutoPollingPatternsView(names, parent=self.view)
@@ -168,13 +172,22 @@ class SetCmdDataViewController(QObject):
             self.refresh_patterns_list()
 
     def open_telemetry_display_window(self):
-        current_pattern_name = self.view.combo_patterns.currentText()
-        if not current_pattern_name:
-            QMessageBox.warning(self.view, "Предупреждение", "Не выбран рабочий шаблон отображения данных.")
-            return
+        # Определяем, открывается ли несохраненный шаблон (вкладка "Новый" или первичный ввод имени)
+        is_unsaved_mode = self.view.radio_new.isChecked() or self.view.input_pattern_name.isVisible()
 
-        config = self.cmd_view_manager.load_pattern_config(self.active_protocol, current_pattern_name)
-        active_mappings = config.get("mappings", {})
+        if is_unsaved_mode:
+            if not self.temp_in_memory_config:
+                QMessageBox.warning(self.view, "Предупреждение", "Конфигурация отображения не настроена.")
+                return
+            active_mappings = self.temp_in_memory_config.get("mappings", {})
+        else:
+            current_pattern_name = self.view.combo_patterns.currentText()
+            if not current_pattern_name:
+                QMessageBox.warning(self.view, "Предупреждение", "Не выбран рабочий шаблон отображения данных.")
+                return
+            config = self.cmd_view_manager.load_pattern_config(self.active_protocol, current_pattern_name)
+            active_mappings = config.get("mappings", {})
+
         available_views = self.cmd_view_manager.load_available_view_structures()
 
         from app.views.StructuresDisplayView import StructuresDisplayView
@@ -182,6 +195,7 @@ class SetCmdDataViewController(QObject):
         self.live_display_dialog = StructuresDisplayView(
             active_mappings=active_mappings,
             structures_definitions=available_views,
+            is_unsaved=is_unsaved_mode,
             parent=self.view.parent()
         )
 
