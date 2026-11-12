@@ -101,19 +101,22 @@ class CmdPatternsManager:
             result["src_addr"] = int(full_frame_bytes[1])
 
             if protocol_name == "IDS":
+                # HEAD: DST(1) + SRC(1) + LEN(2) + CMD(1) | TAIL: CRC(1)
                 if len(full_frame_bytes) >= 6:
                     result["cmd_code"] = int(full_frame_bytes[4])
                     result["payload_bytes"] = full_frame_bytes[5:-1]
             elif protocol_name == "Aps":
+                # HEAD: DST(1) + SRC(1) + LEN(2) + CMD(1) | TAIL: CRC(2)
                 if len(full_frame_bytes) >= 7:
                     result["cmd_code"] = int(full_frame_bytes[4])
                     result["payload_bytes"] = full_frame_bytes[5:-2]
-            elif protocol_name == "Gels":
+            elif protocol_name in ("Gels", "Uni"):
+                # HEAD: DST(1) + SRC(1) + CMD(1) + LEN(2) | TAIL: CRC(1) + END(1)
                 if len(full_frame_bytes) >= 7:
                     result["cmd_code"] = int(full_frame_bytes[2])
                     result["payload_bytes"] = full_frame_bytes[5:-2]
         except Exception as e:
-            print(f"[CmdPatternsManager] Ошибка разбора кадра: {e}")
+            print(f"[CmdPatternsManager] Ошибка разбора кадра ({protocol_name}): {e}")
 
         return result
 
